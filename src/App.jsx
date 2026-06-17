@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { supabase } from "./supabase";
 
 const C = {
@@ -19,7 +20,7 @@ function useIsMobile() {
   return mobile;
 }
 
-const btn = (type) => {
+const btn = (type, extra = {}) => {
   const base = { padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all .15s", border: "none" };
   const types = {
     primary: { background: C.olive, color: C.white },
@@ -27,8 +28,9 @@ const btn = (type) => {
     danger: { background: C.dangerPale, color: C.danger, border: `0.5px solid rgba(160,48,48,0.2)` },
     success: { background: C.successPale, color: C.success, border: `0.5px solid rgba(74,122,90,0.3)` },
     warn: { background: C.warnPale, color: C.warn, border: `0.5px solid rgba(160,96,48,0.2)` },
+    terra: { background: C.terra, color: C.white },
   };
-  return { ...base, ...types[type] };
+  return { ...base, ...types[type], ...extra };
 };
 
 const tag = (type) => {
@@ -58,16 +60,306 @@ function Modal({ title, sub, onClose, children }) {
   );
 }
 
-function Field({ label, value, onChange, placeholder }) {
+function Field({ label, value, onChange, placeholder, type = "text" }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>{label}</div>
-      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type}
         style={{ width: "100%", padding: "9px 12px", border: `0.5px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.dark, background: C.cream, outline: "none", boxSizing: "border-box" }} />
     </div>
   );
 }
 
+// ── LOGIN ALUMNA ──────────────────────────────────────────
+function LoginAlumna({ onLogin }) {
+  const [telefon, setTelefon] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleLogin() {
+    if (!telefon.trim()) return setError("Introdueix el teu telefon");
+    setLoading(true);
+    setError("");
+    const tel = telefon.trim();
+    const { data, error: err } = await supabase.from("alumnes").select("*").eq("telefon", tel).eq("activa", true).single();
+    setLoading(false);
+    if (err || !data) {
+      setError("No hem trobat cap compte amb aquest numero. Contacta amb Focus Benestar.");
+      return;
+    }
+    onLogin(data);
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ width: "100%", maxWidth: 380, position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white, lineHeight: 1, marginBottom: 6 }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontStyle: "italic", color: "#d9a080" }}>et cuida.</div>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 6 }}>Accedeix a la teva area</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24, lineHeight: 1.5 }}>Introdueix el teu numero de WhatsApp per entrar</div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Telefon WhatsApp</div>
+            <input
+              value={telefon}
+              onChange={e => { setTelefon(e.target.value); setError(""); }}
+              placeholder="+376 600 111"
+              type="tel"
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ width: "100%", padding: "12px 14px", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 10, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.white, background: "rgba(255,255,255,0.08)", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 14, lineHeight: 1.5 }}>{error}</div>}
+          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 14, borderRadius: 10, opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Comprovant..." : "Entrar"}
+          </button>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 300 }}>
+          Problemes per accedir? Escriu-nos al WhatsApp del centre
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── VISTA ALUMNA ──────────────────────────────────────────
+function VistaAlumnaPanel({ alumna, onLogout }) {
+  const mobile = useIsMobile();
+  const [tab, setTab] = useState("inici");
+  const [horaris, setHoraris] = useState([]);
+  const [assistencies, setAssistencies] = useState([]);
+  const [recuperacions, setRecuperacions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalCancelar, setModalCancelar] = useState(null);
+  const [modalRecuperar, setModalRecuperar] = useState(null);
+  const [motiu, setMotiu] = useState("");
+
+  useEffect(() => { fetchDades(); }, []);
+
+  async function fetchDades() {
+    setLoading(true);
+    const [h, a, r] = await Promise.all([
+      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true),
+      supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
+    ]);
+    if (h.data) setHoraris(h.data);
+    if (a.data) setAssistencies(a.data);
+    if (r.data) setRecuperacions(r.data);
+    setLoading(false);
+  }
+
+  async function handleCancelar(assistencia) {
+    const ara = new Date();
+    const classeData = new Date(assistencia.classes?.data + "T" + (assistencia.classes?.franges?.hora_inici || "00:00"));
+    const horasDiff = (classeData - ara) / (1000 * 60 * 60);
+    const tipusCancelacio = horasDiff >= 24 ? "mes_24h" : "menys_24h";
+    await supabase.from("assistencies").update({ estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }).eq("id", assistencia.id);
+    if (tipusCancelacio === "mes_24h") {
+      const caducitat = new Date();
+      caducitat.setMonth(caducitat.getMonth() + 1);
+      await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, assistencia_original_id: assistencia.id, estat: "pendent", data_caducitat: caducitat.toISOString().split("T")[0] }]);
+    }
+    setModalCancelar(null);
+    setMotiu("");
+    fetchDades();
+  }
+
+  async function handleSolRecuperacio(franja, data) {
+    await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, estat: "pendent", data_proposta_alumna: data, data_caducitat: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] }]);
+    setModalRecuperar(null);
+    fetchDades();
+    alert("Sol.licitud enviada! Rosario la confirmara aviat.");
+  }
+
+  const diesSetmana = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+  const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
+  const aprovades = recuperacions.filter(r => r.estat === "aprovada");
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveXpale, maxWidth: mobile ? "100%" : 480, margin: "0 auto" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+      <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 14 }}>et cuida.</span></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.white }}>{alumna.nom[0]}</div>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
+        </div>
+      </div>
+
+      <div style={{ padding: "20px 16px 80px" }}>
+        {loading ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark, lineHeight: 1.1 }}>
+                Hola, <em style={{ fontWeight: 400, color: C.terra }}>{alumna.nom}.</em>
+              </div>
+              <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4 }}>Benvinguda a la teva area personal</div>
+            </div>
+
+            {pendentsRecup.length > 0 && (
+              <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 12, padding: "12px 14px", marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: C.warn, marginBottom: 3 }}>Tens {pendentsRecup.length} recuperacio{pendentsRecup.length > 1 ? "ns" : ""} pendent{pendentsRecup.length > 1 ? "s" : ""}</div>
+                  <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, lineHeight: 1.4 }}>Caduca: {pendentsRecup[0].data_caducitat}</div>
+                  <button style={{ ...btn("warn"), marginTop: 8, fontSize: 11, padding: "5px 12px" }} onClick={() => setTab("recuperacions")}>Gestionar ara</button>
+                </div>
+              </div>
+            )}
+
+            {tab === "inici" && (
+              <>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>El teu horari fix</div>
+                {horaris.length === 0 ? (
+                  <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Encara no tens horari assignat. Contacta amb Focus Benestar.</div>
+                  </div>
+                ) : (
+                  horaris.map(h => {
+                    const franja = h.franges;
+                    const servei = franja?.serveis;
+                    const prof = franja?.professores;
+                    return (
+                      <div key={h.id} style={{ background: C.oliveDark, borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden" }}>
+                        <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Classe setmanal</div>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: 16 }}>
+                          {franja ? `${diesSetmana[(franja.dia_setmana || 1) - 1]} · ${franja.hora_inici?.slice(0, 5)} – ${franja.hora_fi?.slice(0, 5)}` : ""}
+                          {prof ? ` · ${prof.nom}` : ""}
+                        </div>
+                        <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
+                          Cancel.lar proxima classe
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Ultimes classes</div>
+                <div style={card}>
+                  {assistencies.slice(0, 5).map((a, i, arr) => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
+                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
+                      </div>
+                      <span style={tag(a.estat === "confirmada" ? "ok" : a.estat === "cancelada" ? "cancel" : "warn")}>
+                        {a.estat === "confirmada" ? "Assistida" : a.estat === "cancelada" ? "Cancel.lada" : "Recuperacio"}
+                      </span>
+                    </div>
+                  ))}
+                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Encara no tens classes registrades</div>}
+                </div>
+              </>
+            )}
+
+            {tab === "recuperacions" && (
+              <>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Les teves recuperacions</div>
+                {recuperacions.length === 0 ? (
+                  <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens cap recuperacio</div>
+                  </div>
+                ) : (
+                  <div style={card}>
+                    {recuperacions.map((r, i, arr) => (
+                      <div key={r.id} style={{ padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>Recuperacio de classe</div>
+                          <span style={tag(r.estat === "aprovada" ? "ok" : r.estat === "rebutjada" ? "cancel" : "warn")}>
+                            {r.estat === "aprovada" ? "Aprovada" : r.estat === "rebutjada" ? "Rebutjada" : "Pendent"}
+                          </span>
+                        </div>
+                        {r.data_caducitat && <div style={{ fontSize: 11, color: C.soft, marginBottom: 8 }}>Caduca: {r.data_caducitat}</div>}
+                        {r.estat === "pendent" && !r.data_proposta_alumna && (
+                          <button style={{ ...btn("primary"), fontSize: 11, padding: "5px 12px" }} onClick={() => setModalRecuperar(r)}>
+                            Proposar hora
+                          </button>
+                        )}
+                        {r.data_proposta_alumna && r.estat === "pendent" && (
+                          <div style={{ fontSize: 11, color: C.warn, fontStyle: "italic" }}>Proposta enviada: {r.data_proposta_alumna} · Esperant confirmacio de Rosario</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === "historial" && (
+              <>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Historial complet</div>
+                <div style={card}>
+                  {assistencies.map((a, i, arr) => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: a.estat === "confirmada" ? C.successPale : a.estat === "cancelada" ? C.dangerPale : C.warnPale, flexShrink: 0 }}>
+                        {a.estat === "confirmada" ? "✓" : a.estat === "cancelada" ? "✕" : "↺"}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
+                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
+                      </div>
+                      <span style={tag(a.estat === "confirmada" ? "ok" : a.estat === "cancelada" ? "cancel" : "warn")}>
+                        {a.estat === "confirmada" ? "Assistida" : a.estat === "cancelada" ? "Cancel.lada" : "Recuperacio"}
+                      </span>
+                    </div>
+                  ))}
+                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense historial encara</div>}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: mobile ? "100%" : 480, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 100, display: "flex" }}>
+        {[{ key: "inici", label: "Inici", icon: "🏠" }, { key: "recuperacions", label: "Recupera", icon: "↺", count: pendentsRecup.length }, { key: "historial", label: "Historial", icon: "📋" }].map(item => (
+          <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
+            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 9, fontWeight: 500, color: tab === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
+            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {modalCancelar && (
+        <Modal title="Cancel.lar classe" sub="Confirma que vols cancel.lar la teva proxima classe" onClose={() => setModalCancelar(null)}>
+          <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.warn, lineHeight: 1.6 }}>
+            Si cancel.les amb mes de 24h d'antelacio, podras recuperar la classe en els propers 30 dies. Si cancel.les amb menys de 24h, la classe es perd.
+          </div>
+          <Field label="Motiu (opcional)" value={motiu} onChange={setMotiu} placeholder="No em trobo be, feina..." />
+          <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalCancelar(null)}>Tornar</button>
+            <button style={{ ...btn("danger"), flex: 1 }} onClick={() => handleCancelar(modalCancelar)}>Si, cancel.lo</button>
+          </div>
+        </Modal>
+      )}
+
+      {modalRecuperar && (
+        <Modal title="Proposar hora de recuperacio" sub="Indica quan t'agradaria fer la classe de recuperacio" onClose={() => setModalRecuperar(null)}>
+          <Field label="Data que proposes" value="" onChange={() => {}} placeholder="ej: dimecres 25 de juny a les 8:00" />
+          <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, lineHeight: 1.5, marginBottom: 16 }}>Rosario confirmara la teva proposta i rebras un avis.</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalRecuperar(null)}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={() => handleSolRecuperacio(null, "pendent")}>Enviar proposta</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── PANEL ROSARIO ─────────────────────────────────────────
 function Sidebar({ active, setActive, counts }) {
   const items = [
     { key: "avui", label: "Avui", section: "Principal" },
@@ -94,7 +386,7 @@ function Sidebar({ active, setActive, counts }) {
         ))}
       </nav>
       <div style={{ padding: "16px 20px", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.white, flexShrink: 0 }}>R</div>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.white }}>R</div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 500, color: C.white }}>Rosario</div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Administradora</div>
@@ -120,15 +412,6 @@ function BottomNav({ active, setActive, counts }) {
           {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
         </button>
       ))}
-    </div>
-  );
-}
-
-function MobileTopbar({ onRefresh }) {
-  return (
-    <div style={{ background: C.oliveDark, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 14 }}>et cuida.</span></div>
-      <button onClick={onRefresh} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: C.white, fontSize: 18 }}>↻</button>
     </div>
   );
 }
@@ -160,19 +443,19 @@ function VistaAvui({ alumnes, espera, recuperacions, canvis, mobile }) {
           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.nom} {a.cognom}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
               <div style={{ fontSize: 11, color: C.soft }}>{a.telefon}</div>
             </div>
             <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
           </div>
         ))}
-        {alumnes.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense alumnes encara. Afegeix la primera!</div>}
+        {alumnes.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense alumnes encara</div>}
       </div>
     </div>
   );
 }
 
-function VistaAlumnes({ alumnes, onRefresh, mobile }) {
+function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ nom: "", cognom: "", telefon: "", email: "", notes: "" });
   const [loading, setLoading] = useState(false);
@@ -213,9 +496,9 @@ function VistaAlumnes({ alumnes, onRefresh, mobile }) {
           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "12px 16px" : "13px 20px", borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.nom} {a.cognom}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
               <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.telefon}</div>
-              {a.notes && <div style={{ fontSize: 11, color: C.mid, fontStyle: "italic", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.notes}</div>}
+              {a.notes && <div style={{ fontSize: 11, color: C.mid, fontStyle: "italic", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</div>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
               <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
@@ -342,7 +625,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>Sol.licitud de recuperacio</div>
                 <span style={tag("warn")}>Pendent</span>
               </div>
-              {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Proposta: {r.data_proposta_alumna}</div>}
+              {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Proposta: {r.data_proposta_alumna}{r.data_caducitat ? " · Caduca: " + r.data_caducitat : ""}</div>}
               <div style={{ display: "flex", gap: 6 }}>
                 <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("recuperacions", r.id)}>Aprovar</button>
                 <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("recuperacions", r.id)}>Rebutjar</button>
@@ -389,7 +672,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   );
 }
 
-export default function App() {
+function PanelRosario() {
   const [active, setActive] = useState("avui");
   const [alumnes, setAlumnes] = useState([]);
   const [espera, setEspera] = useState([]);
@@ -422,53 +705,128 @@ export default function App() {
   };
 
   return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-      <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.oliveXpale, minHeight: "100vh", color: C.dark }}>
-        {mobile ? (
-          <>
-            <MobileTopbar onRefresh={fetchAll} />
-            {loading ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.oliveXpale, minHeight: "100vh", color: C.dark }}>
+      {mobile ? (
+        <>
+          <div style={{ background: C.oliveDark, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 14 }}>et cuida.</span></div>
+            <button onClick={fetchAll} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: C.white, fontSize: 18 }}>↻</button>
+          </div>
+          {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
+            <>
+              {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile />}
+              {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile />}
+              {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile />}
+              {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile />}
+            </>
+          )}
+          <BottomNav active={active} setActive={setActive} counts={counts} />
+        </>
+      ) : (
+        <>
+          <Sidebar active={active} setActive={setActive} counts={counts} />
+          <main style={{ marginLeft: 220, minHeight: "100vh" }}>
+            <div style={{ background: C.white, borderBottom: `0.5px solid ${C.border}`, padding: "0 32px", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+              <div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark }}>focus benestar</div>
+                <div style={{ fontSize: 12, color: C.soft, fontWeight: 300 }}>Panel d'administracio · Rosario</div>
               </div>
-            ) : (
+              <button style={btn("primary")} onClick={fetchAll}>Actualitzar</button>
+            </div>
+            {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
               <>
-                {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile />}
-                {active === "alumnes" && <VistaAlumnes alumnes={alumnes} onRefresh={fetchAll} mobile />}
-                {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile />}
-                {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile />}
+                {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile={false} />}
+                {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
+                {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile={false} />}
+                {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile={false} />}
               </>
             )}
-            <BottomNav active={active} setActive={setActive} counts={counts} />
-          </>
-        ) : (
-          <>
-            <Sidebar active={active} setActive={setActive} counts={counts} />
-            <main style={{ marginLeft: 220, minHeight: "100vh" }}>
-              <div style={{ background: C.white, borderBottom: `0.5px solid ${C.border}`, padding: "0 32px", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-                <div>
-                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark }}>focus benestar</div>
-                  <div style={{ fontSize: 12, color: C.soft, fontWeight: 300 }}>Panel d'administracio · Rosario</div>
-                </div>
-                <button style={btn("primary")} onClick={fetchAll}>Actualitzar</button>
-              </div>
-              {loading ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
-                </div>
-              ) : (
-                <>
-                  {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile={false} />}
-                  {active === "alumnes" && <VistaAlumnes alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
-                  {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile={false} />}
-                  {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile={false} />}
-                </>
-              )}
-            </main>
-          </>
-        )}
+          </main>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── PANTALLA LOGIN ROSARIO ────────────────────────────────
+function LoginRosario({ onLogin }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const PIN_ROSARIO = "1234";
+
+  function handleLogin() {
+    if (pin === PIN_ROSARIO) { onLogin(); }
+    else { setError("PIN incorrecte"); }
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 340 }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>Panel d'administracio</div>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.white, marginBottom: 20 }}>Acces Rosario</div>
+          <Field label="PIN d'acces" value={pin} onChange={v => { setPin(v); setError(""); }} placeholder="****" type="password" />
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+          <button style={{ ...btn("terra"), width: "100%", padding: 12, fontSize: 14, borderRadius: 10, marginTop: 8 }} onClick={handleLogin}>Entrar</button>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── HOME — SELECTOR ───────────────────────────────────────
+function Home() {
+  const navigate = useNavigate();
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ width: "100%", maxWidth: 360, position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 700, color: C.white, lineHeight: 1 }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: "italic", color: "#d9a080", marginTop: 6 }}>et cuida.</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <button onClick={() => navigate("/alumna")} style={{ background: C.terra, color: C.white, border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>Soc alumna</div>
+            <div>Accedeix a la teva area personal</div>
+          </button>
+          <button onClick={() => navigate("/admin")} style={{ background: "rgba(255,255,255,0.08)", color: C.white, border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 4 }}>Administracio</div>
+            <div>Panel de Rosario</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ROUTES ────────────────────────────────────────────────
+function AlumnaRoute() {
+  const [alumna, setAlumna] = useState(null);
+  if (!alumna) return <LoginAlumna onLogin={setAlumna} />;
+  return <VistaAlumnaPanel alumna={alumna} onLogout={() => setAlumna(null)} />;
+}
+
+function AdminRoute() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  if (!loggedIn) return <LoginRosario onLogin={() => setLoggedIn(true)} />;
+  return <PanelRosario />;
+}
+
+export default function App() {
+  return (
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/alumna" element={<AlumnaRoute />} />
+          <Route path="/admin" element={<AdminRoute />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }
