@@ -180,7 +180,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   const aprovades = recuperacions.filter(r => r.estat === "aprovada");
 
   return (
-    <div style={{ minHeight: "100vh", background: C.oliveXpale, maxWidth: mobile ? "100%" : 480, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%", margin: "0 auto" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
       <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
