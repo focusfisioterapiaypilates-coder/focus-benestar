@@ -126,61 +126,169 @@ function LoginAlumna({ onLogin }) {
 }
 
 // ── VISTA ALUMNA ──────────────────────────────────────────
+// Helper: get next date for a given weekday (1=Mon...5=Fri)
+function getNextDate(diaSetmana) {
+  const avui = new Date();
+  const avuiDia = avui.getDay() === 0 ? 7 : avui.getDay();
+  let diff = diaSetmana - avuiDia;
+  if (diff <= 0) diff += 7;
+  const next = new Date(avui);
+  next.setDate(avui.getDate() + diff);
+  return next;
+}
+
+function formatDataCurta(date) {
+  const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte", "Diumenge"];
+  const mesos = ["gener", "febrer", "marc", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
+  const dia = date.getDay() === 0 ? 7 : date.getDay();
+  return `${dies[dia]} ${date.getDate()} de ${mesos[date.getMonth()]}`;
+}
+
+function generateSlots(franges, ocupacions) {
+  const slots = [];
+  const avui = new Date();
+  avui.setHours(0,0,0,0);
+  const limit = new Date(avui);
+  limit.setDate(avui.getDate() + 30);
+  for (let d = new Date(avui); d <= limit; d.setDate(d.getDate() + 1)) {
+    const diaSemana = d.getDay() === 0 ? 7 : d.getDay();
+    if (diaSemana > 5) continue;
+    const dateStr = d.toISOString().split("T")[0];
+    franges.forEach(f => {
+      if (f.dia_setmana !== diaSemana) return;
+      const ocupades = ocupacions.filter(o => o.franja_id === f.id && o.data === dateStr && o.estat !== "cancelada").length;
+      const max = f.serveis?.max_alumnes || 3;
+      const lliures = max - ocupades;
+      if (lliures > 0) {
+        slots.push({
+          franja_id: f.id, franja: f, data: dateStr, dataObj: new Date(d),
+          lliures, max, servei: f.serveis?.nom || "",
+          hora: f.hora_inici?.slice(0,5) || "", hora_fi: f.hora_fi?.slice(0,5) || "",
+        });
+      }
+    });
+  }
+  return slots.sort((a,b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
+}
+
 function VistaAlumnaPanel({ alumna, onLogout }) {
   const mobile = useIsMobile();
   const [tab, setTab] = useState("inici");
   const [horaris, setHoraris] = useState([]);
   const [assistencies, setAssistencies] = useState([]);
   const [recuperacions, setRecuperacions] = useState([]);
+  const [franges, setFranges] = useState([]);
+  const [ocupacions, setOcupacions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalCancelar, setModalCancelar] = useState(null);
-  const [modalRecuperar, setModalRecuperar] = useState(null);
+  const [modalSlot, setModalSlot] = useState(null);
   const [motiu, setMotiu] = useState("");
+  const [slotAction, setSlotAction] = useState("recuperacio");
 
   useEffect(() => { fetchDades(); }, []);
 
   async function fetchDades() {
     setLoading(true);
-    const [h, a, r] = await Promise.all([
+    const avui = new Date();
+    const limit = new Date(avui);
+    limit.setDate(avui.getDate() + 30);
+    const limitStr = limit.toISOString().split("T")[0];
+    const avuiStr = avui.toISOString().split("T")[0];
+    const [h, a, r, fr, oc] = await Promise.all([
       supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true),
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
+      supabase.from("franges").select("*, serveis(*)").eq("activa", true),
+      supabase.from("classes").select("*, assistencies(estat, alumna_id)").gte("data", avuiStr).lte("data", limitStr),
     ]);
     if (h.data) setHoraris(h.data);
     if (a.data) setAssistencies(a.data);
     if (r.data) setRecuperacions(r.data);
+    if (fr.data) setFranges(fr.data);
+    if (oc.data) {
+      const flat = [];
+      oc.data.forEach(cl => {
+        (cl.assistencies || []).forEach(ass => {
+          flat.push({ franja_id: cl.franja_id, data: cl.data, estat: ass.estat });
+        });
+      });
+      setOcupacions(flat);
+    }
     setLoading(false);
   }
 
-  async function handleCancelar(assistencia) {
-    const ara = new Date();
-    const classeData = new Date(assistencia.classes?.data + "T" + (assistencia.classes?.franges?.hora_inici || "00:00"));
-    const horasDiff = (classeData - ara) / (1000 * 60 * 60);
+  async function handleCancelar() {
+    if (!modalCancelar) return;
+    const h = modalCancelar;
+    const franja = h.franges;
+    const nextDate = getNextDate(franja?.dia_setmana);
+    const nextDateStr = nextDate.toISOString().split("T")[0];
+    const horaInici = franja?.hora_inici || "00:00";
+    const classeDateTime = new Date(nextDateStr + "T" + horaInici);
+    const horasDiff = (classeDateTime - new Date()) / (1000 * 60 * 60);
     const tipusCancelacio = horasDiff >= 24 ? "mes_24h" : "menys_24h";
-    await supabase.from("assistencies").update({ estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }).eq("id", assistencia.id);
+    let classeId = null;
+    const { data: existingClasse } = await supabase.from("classes").select("id").eq("franja_id", franja?.id).eq("data", nextDateStr).single();
+    if (existingClasse) {
+      classeId = existingClasse.id;
+    } else {
+      const { data: newClasse } = await supabase.from("classes").insert([{ franja_id: franja?.id, data: nextDateStr, estat: "programada" }]).select().single();
+      if (newClasse) classeId = newClasse.id;
+    }
+    if (classeId) {
+      const { data: existing } = await supabase.from("assistencies").select("id").eq("classe_id", classeId).eq("alumna_id", alumna.id).single();
+      if (existing) {
+        await supabase.from("assistencies").update({ estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }).eq("id", existing.id);
+      } else {
+        await supabase.from("assistencies").insert([{ classe_id: classeId, alumna_id: alumna.id, estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }]);
+      }
+    }
     if (tipusCancelacio === "mes_24h") {
       const caducitat = new Date();
       caducitat.setMonth(caducitat.getMonth() + 1);
-      await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, assistencia_original_id: assistencia.id, estat: "pendent", data_caducitat: caducitat.toISOString().split("T")[0] }]);
+      await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, estat: "pendent", data_caducitat: caducitat.toISOString().split("T")[0] }]);
     }
     setModalCancelar(null);
     setMotiu("");
     fetchDades();
+    if (tipusCancelacio === "mes_24h") {
+      alert("Classe cancel.lada. Tens 30 dies per recuperar-la des del calendari!");
+    } else {
+      alert("Classe cancel.lada. Com que es menys de 24h, no es pot recuperar.");
+    }
   }
 
-  async function handleSolRecuperacio(franja, data) {
-    await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, estat: "pendent", data_proposta_alumna: data, data_caducitat: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] }]);
-    setModalRecuperar(null);
-    fetchDades();
-    alert("Sol.licitud enviada! Rosario la confirmara aviat.");
+  async function handleApuntarSlot(slot) {
+    const pendentsRecup = recuperacions.filter(r => r.estat === "pendent" && !r.data_proposta_alumna);
+    if (slotAction === "recuperacio" && pendentsRecup.length > 0) {
+      const recup = pendentsRecup[0];
+      await supabase.from("recuperacions").update({ data_proposta_alumna: slot.data, estat: "aprovada" }).eq("id", recup.id);
+      let classeId = null;
+      const { data: existingClasse } = await supabase.from("classes").select("id").eq("franja_id", slot.franja_id).eq("data", slot.data).single();
+      if (existingClasse) { classeId = existingClasse.id; }
+      else {
+        const { data: newClasse } = await supabase.from("classes").insert([{ franja_id: slot.franja_id, data: slot.data, estat: "programada" }]).select().single();
+        if (newClasse) classeId = newClasse.id;
+      }
+      if (classeId) {
+        await supabase.from("assistencies").insert([{ classe_id: classeId, alumna_id: alumna.id, estat: "recuperacio" }]);
+      }
+      setModalSlot(null);
+      fetchDades();
+      alert("Recuperacio confirmada! Ens veiem el " + formatDataCurta(slot.dataObj) + " a les " + slot.hora);
+    } else {
+      await supabase.from("canvis_horari").insert([{ alumna_id: alumna.id, franja_sollicitada_id: slot.franja_id, estat: "pendent", nota_alumna: "Sol.licitud des del calendari per al " + slot.data }]);
+      setModalSlot(null);
+      fetchDades();
+      alert("Sol.licitud enviada a Rosario! Et confirmara aviat.");
+    }
   }
 
-  const diesSetmana = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
   const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
-  const aprovades = recuperacions.filter(r => r.estat === "aprovada");
+  const slots = generateSlots(franges, ocupacions);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%", margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
       <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
@@ -210,8 +318,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                 <span style={{ fontSize: 18 }}>⚠️</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: C.warn, marginBottom: 3 }}>Tens {pendentsRecup.length} recuperacio{pendentsRecup.length > 1 ? "ns" : ""} pendent{pendentsRecup.length > 1 ? "s" : ""}</div>
-                  <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, lineHeight: 1.4 }}>Caduca: {pendentsRecup[0].data_caducitat}</div>
-                  <button style={{ ...btn("warn"), marginTop: 8, fontSize: 11, padding: "5px 12px" }} onClick={() => setTab("recuperacions")}>Gestionar ara</button>
+                  <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, lineHeight: 1.4 }}>Caduca: {pendentsRecup[0]?.data_caducitat}</div>
+                  <button style={{ ...btn("warn"), marginTop: 8, fontSize: 11, padding: "5px 12px" }} onClick={() => setTab("calendari")}>Triar hora de recuperacio</button>
                 </div>
               </div>
             )}
@@ -227,18 +335,17 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   horaris.map(h => {
                     const franja = h.franges;
                     const servei = franja?.serveis;
-                    const prof = franja?.professores;
+                    const nextDate = franja ? getNextDate(franja.dia_setmana) : null;
                     return (
                       <div key={h.id} style={{ background: C.oliveDark, borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden" }}>
                         <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
-                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Classe setmanal</div>
+                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Proxima classe</div>
                         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
                         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: 16 }}>
-                          {franja ? `${diesSetmana[(franja.dia_setmana || 1) - 1]} · ${franja.hora_inici?.slice(0, 5)} – ${franja.hora_fi?.slice(0, 5)}` : ""}
-                          {prof ? ` · ${prof.nom}` : ""}
+                          {nextDate ? formatDataCurta(nextDate) : ""} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
                         </div>
                         <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
-                          Cancel.lar proxima classe
+                          Cancel.lar aquesta classe
                         </button>
                       </div>
                     );
@@ -263,32 +370,38 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
               </>
             )}
 
-            {tab === "recuperacions" && (
+            {tab === "calendari" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Les teves recuperacions</div>
-                {recuperacions.length === 0 ? (
-                  <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens cap recuperacio</div>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 6 }}>Places lliures — propers 30 dies</div>
+                <div style={{ fontSize: 12, color: C.mid, fontWeight: 300, marginBottom: 16, lineHeight: 1.5 }}>
+                  {pendentsRecup.length > 0
+                    ? "Tens una recuperacio pendent. Toca qualsevol classe per apuntar-te directament."
+                    : "Toca qualsevol classe per sol.licitar un canvi d'horari fix a Rosario."}
+                </div>
+                {slots.length === 0 ? (
+                  <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures els propers 30 dies</div>
                   </div>
                 ) : (
                   <div style={card}>
-                    {recuperacions.map((r, i, arr) => (
-                      <div key={r.id} style={{ padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>Recuperacio de classe</div>
-                          <span style={tag(r.estat === "aprovada" ? "ok" : r.estat === "rebutjada" ? "cancel" : "warn")}>
-                            {r.estat === "aprovada" ? "Aprovada" : r.estat === "rebutjada" ? "Rebutjada" : "Pendent"}
-                          </span>
+                    {slots.map((slot, i, arr) => (
+                      <div key={`${slot.franja_id}-${slot.data}`} onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : "canvi"); }}
+                        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer", transition: "background .15s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.oliveXpale}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.olivePale, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.oliveDark, lineHeight: 1 }}>{new Date(slot.dataObj).getDate()}</div>
+                          <div style={{ fontSize: 9, color: C.soft, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            {["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"][slot.dataObj.getMonth() + 1]}
+                          </div>
                         </div>
-                        {r.data_caducitat && <div style={{ fontSize: 11, color: C.soft, marginBottom: 8 }}>Caduca: {r.data_caducitat}</div>}
-                        {r.estat === "pendent" && !r.data_proposta_alumna && (
-                          <button style={{ ...btn("primary"), fontSize: 11, padding: "5px 12px" }} onClick={() => setModalRecuperar(r)}>
-                            Proposar hora
-                          </button>
-                        )}
-                        {r.data_proposta_alumna && r.estat === "pendent" && (
-                          <div style={{ fontSize: 11, color: C.warn, fontStyle: "italic" }}>Proposta enviada: {r.data_proposta_alumna} · Esperant confirmacio de Rosario</div>
-                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{slot.servei}</div>
+                          <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{formatDataCurta(slot.dataObj)} · {slot.hora} – {slot.hora_fi}</div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <span style={{ ...tag("ok"), fontSize: 11 }}>{slot.lliures} {slot.lliures === 1 ? "lloc" : "llocs"}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -322,8 +435,12 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
         )}
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: mobile ? "100%" : 480, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 100, display: "flex" }}>
-        {[{ key: "inici", label: "Inici", icon: "🏠" }, { key: "recuperacions", label: "Recupera", icon: "↺", count: pendentsRecup.length }, { key: "historial", label: "Historial", icon: "📋" }].map(item => (
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 100, display: "flex" }}>
+        {[
+          { key: "inici", label: "Inici", icon: "🏠" },
+          { key: "calendari", label: "Places", icon: "📅", count: pendentsRecup.length },
+          { key: "historial", label: "Historial", icon: "📋" }
+        ].map(item => (
           <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
             <span style={{ fontSize: 20 }}>{item.icon}</span>
             <span style={{ fontSize: 9, fontWeight: 500, color: tab === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
@@ -333,25 +450,40 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       </div>
 
       {modalCancelar && (
-        <Modal title="Cancel.lar classe" sub="Confirma que vols cancel.lar la teva proxima classe" onClose={() => setModalCancelar(null)}>
+        <Modal title="Cancel.lar classe" sub={`Proxima classe: ${modalCancelar.franges ? formatDataCurta(getNextDate(modalCancelar.franges.dia_setmana)) : ""}`} onClose={() => setModalCancelar(null)}>
           <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.warn, lineHeight: 1.6 }}>
             Si cancel.les amb mes de 24h d'antelacio, podras recuperar la classe en els propers 30 dies. Si cancel.les amb menys de 24h, la classe es perd.
           </div>
           <Field label="Motiu (opcional)" value={motiu} onChange={setMotiu} placeholder="No em trobo be, feina..." />
           <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
             <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalCancelar(null)}>Tornar</button>
-            <button style={{ ...btn("danger"), flex: 1 }} onClick={() => handleCancelar(modalCancelar)}>Si, cancel.lo</button>
+            <button style={{ ...btn("danger"), flex: 1 }} onClick={handleCancelar}>Si, cancel.lo</button>
           </div>
         </Modal>
       )}
 
-      {modalRecuperar && (
-        <Modal title="Proposar hora de recuperacio" sub="Indica quan t'agradaria fer la classe de recuperacio" onClose={() => setModalRecuperar(null)}>
-          <Field label="Data que proposes" value="" onChange={() => {}} placeholder="ej: dimecres 25 de juny a les 8:00" />
-          <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, lineHeight: 1.5, marginBottom: 16 }}>Rosario confirmara la teva proposta i rebras un avis.</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
-            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalRecuperar(null)}>Cancel.lar</button>
-            <button style={{ ...btn("primary"), flex: 1 }} onClick={() => handleSolRecuperacio(null, "pendent")}>Enviar proposta</button>
+      {modalSlot && (
+        <Modal title={slotAction === "recuperacio" ? "Apuntar-me a aquesta classe" : "Sol.licitar canvi d'horari"} sub={`${modalSlot.servei} · ${formatDataCurta(modalSlot.dataObj)} · ${modalSlot.hora}`} onClose={() => setModalSlot(null)}>
+          <div style={{ background: slotAction === "recuperacio" ? C.successPale : C.warnPale, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: slotAction === "recuperacio" ? C.success : C.warn, lineHeight: 1.6 }}>
+            {slotAction === "recuperacio"
+              ? "Aquesta accio confirmara la teva recuperacio directament. No cal esperar confirmacio de Rosario."
+              : "S'enviara una sol.licitud a Rosario per canviar el teu horari fix. Ella ho haura d'aprovar."}
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+              <button onClick={() => setSlotAction("recuperacio")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "recuperacio" ? C.olive : C.border}`, background: slotAction === "recuperacio" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: slotAction === "recuperacio" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Recuperar classe{pendentsRecup.length > 0 ? ` (${pendentsRecup.length} pendent)` : ""}
+              </button>
+              <button onClick={() => setSlotAction("canvi")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "canvi" ? C.olive : C.border}`, background: slotAction === "canvi" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: slotAction === "canvi" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Canviar horari fix
+              </button>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalSlot(null)}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={() => handleApuntarSlot(modalSlot)}>
+              {slotAction === "recuperacio" ? "Confirmar recuperacio" : "Enviar sol.licitud"}
+            </button>
           </div>
         </Modal>
       )}
