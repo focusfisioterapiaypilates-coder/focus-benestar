@@ -455,8 +455,131 @@ function VistaAvui({ alumnes, espera, recuperacions, canvis, mobile }) {
   );
 }
 
+function FichaAlumna({ alumna, onClose, onRefresh }) {
+  const [horaris, setHoraris] = useState([]);
+  const [franges, setFranges] = useState([]);
+  const [serveis, setServeis] = useState([]);
+  const [loadingH, setLoadingH] = useState(true);
+  const [showAddHorari, setShowAddHorari] = useState(false);
+  const [selectedFranja, setSelectedFranja] = useState("");
+  const [filterServei, setFilterServei] = useState("");
+  const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+
+  useEffect(() => { fetchHoraris(); fetchFranges(); }, []);
+
+  async function fetchHoraris() {
+    setLoadingH(true);
+    const { data } = await supabase.from("horaris_alumnes")
+      .select("*, franges(*, serveis(*))")
+      .eq("alumna_id", alumna.id)
+      .eq("actiu", true);
+    if (data) setHoraris(data);
+    setLoadingH(false);
+  }
+
+  async function fetchFranges() {
+    const { data: sv } = await supabase.from("serveis").select("*").eq("actiu", true);
+    if (sv) setServeis(sv);
+    const { data: fr } = await supabase.from("franges").select("*, serveis(*)").eq("activa", true).order("dia_setmana").order("hora_inici");
+    if (fr) setFranges(fr);
+  }
+
+  async function handleAddHorari() {
+    if (!selectedFranja) return alert("Selecciona una franja");
+    if (horaris.length >= 3) return alert("Maxim 3 horaris per alumna");
+    const { error } = await supabase.from("horaris_alumnes").insert([{ alumna_id: alumna.id, franja_id: selectedFranja, actiu: true }]);
+    if (error) return alert("Error: " + error.message);
+    setShowAddHorari(false);
+    setSelectedFranja("");
+    fetchHoraris();
+    onRefresh();
+  }
+
+  async function handleRemoveHorari(id) {
+    await supabase.from("horaris_alumnes").update({ actiu: false }).eq("id", id);
+    fetchHoraris();
+    onRefresh();
+  }
+
+  async function toggleActiva() {
+    await supabase.from("alumnes").update({ activa: !alumna.activa }).eq("id", alumna.id);
+    onRefresh();
+    onClose();
+  }
+
+  const frangesFiltrades = franges.filter(f => !filterServei || f.serveis?.nom === filterServei);
+  const serveisUnics = [...new Set(franges.map(f => f.serveis?.nom).filter(Boolean))];
+
+  return (
+    <Modal title={`${alumna.nom} ${alumna.cognom}`} sub={alumna.telefon} onClose={onClose}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={tag(alumna.activa ? "ok" : "cancel")}>{alumna.activa ? "Activa" : "Baixa"}</span>
+        {alumna.notes && <span style={tag("olive")}>{alumna.notes}</span>}
+      </div>
+
+      <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Horaris fixos ({horaris.length}/3)</div>
+
+      {loadingH ? (
+        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic", marginBottom: 12 }}>Carregant...</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          {horaris.map(h => (
+            <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.oliveXpale, borderRadius: 9, border: `0.5px solid ${C.border}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.oliveDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
+                <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                  {dies[h.franges?.dia_setmana] || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
+                </div>
+              </div>
+              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 11 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
+            </div>
+          ))}
+          {horaris.length === 0 && <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic", padding: "8px 0" }}>Sense horari assignat</div>}
+        </div>
+      )}
+
+      {horaris.length < 3 && !showAddHorari && (
+        <button style={{ ...btn("primary"), width: "100%", marginBottom: 16 }} onClick={() => setShowAddHorari(true)}>+ Afegir horari fix</button>
+      )}
+
+      {showAddHorari && (
+        <div style={{ background: C.oliveXpale, borderRadius: 10, padding: 14, marginBottom: 16, border: `0.5px solid ${C.border}` }}>
+          <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Selecciona franja</div>
+          <div style={{ marginBottom: 8 }}>
+            <select value={filterServei} onChange={e => { setFilterServei(e.target.value); setSelectedFranja(""); }}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", marginBottom: 6 }}>
+              <option value="">Tots els serveis</option>
+              {serveisUnics.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}>
+              <option value="">Selecciona horari...</option>
+              {frangesFiltrades.map(f => (
+                <option key={f.id} value={f.id}>
+                  {dies[f.dia_setmana]} {f.hora_inici?.slice(0,5)} — {f.serveis?.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowAddHorari(false); setSelectedFranja(""); }}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={handleAddHorari}>Assignar</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ paddingTop: 14, borderTop: `0.5px solid ${C.border}` }}>
+        <button style={{ ...btn(alumna.activa ? "danger" : "success"), width: "100%" }} onClick={toggleActiva}>
+          {alumna.activa ? "Donar de baixa" : "Reactivar alumna"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
   const [showModal, setShowModal] = useState(false);
+  const [fichaAlumna, setFichaAlumna] = useState(null);
   const [form, setForm] = useState({ nom: "", cognom: "", telefon: "", email: "", notes: "" });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -470,11 +593,6 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
     if (error) return alert("Error: " + error.message);
     setShowModal(false);
     setForm({ nom: "", cognom: "", telefon: "", email: "", notes: "" });
-    onRefresh();
-  }
-
-  async function toggleActiva(a) {
-    await supabase.from("alumnes").update({ activa: !a.activa }).eq("id", a.id);
     onRefresh();
   }
 
@@ -493,7 +611,9 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
             style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: "none", color: C.dark, boxSizing: "border-box" }} />
         </div>
         {filtered.map((a, i) => (
-          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "12px 16px" : "13px 20px", borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+          <div key={a.id} onClick={() => setFichaAlumna(a)} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "12px 16px" : "13px 20px", borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer", transition: "background .15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = C.oliveXpale}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
@@ -502,12 +622,15 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
               <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
-              <button style={{ ...btn(a.activa ? "danger" : "success"), padding: "4px 10px", fontSize: 10 }} onClick={() => toggleActiva(a)}>{a.activa ? "Baixa" : "Reactivar"}</button>
+              <span style={{ fontSize: 11, color: C.soft }}>Veure →</span>
             </div>
           </div>
         ))}
         {filtered.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>{search ? "Cap resultat" : "Sense alumnes encara"}</div>}
       </div>
+
+      {fichaAlumna && <FichaAlumna alumna={fichaAlumna} onClose={() => setFichaAlumna(null)} onRefresh={onRefresh} />}
+
       {showModal && (
         <Modal title="Nova alumna" sub="Dona d'alta una nova alumna al centre" onClose={() => setShowModal(false)}>
           <Field label="Nom *" value={form.nom} onChange={v => setForm({ ...form, nom: v })} placeholder="Anna" />
