@@ -536,7 +536,7 @@ function BottomNav({ active, setActive, counts }) {
     { key: "recuperacions", label: "Gestio", icon: "↺", count: counts.recuperacions + counts.canvis },
   ];
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 100, display: "flex" }}>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 200, display: "flex", paddingBottom: "env(safe-area-inset-bottom)" }}>
       {items.map(item => (
         <button key={item.key} onClick={() => setActive(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
           <span style={{ fontSize: 20 }}>{item.icon}</span>
@@ -556,16 +556,16 @@ function VistaAvui({ alumnes, espera, recuperacions, canvis, mobile }) {
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 20 : 22, fontWeight: 700, color: C.oliveDark }}>Bon dia, Rosario.</div>
         <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4, textTransform: "capitalize" }}>{today}</div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4,1fr)", gap: mobile ? 10 : 12, marginBottom: mobile ? 16 : 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4,1fr)", gap: mobile ? 8 : 12, marginBottom: mobile ? 14 : 24 }}>
         {[
           { label: "Alumnes actives", value: alumnes.length, accent: true },
           { label: "Llista d'espera", value: espera.filter(e => e.estat === "esperant").length, color: C.terra },
           { label: "Recuperacions", value: recuperacions.filter(r => r.estat === "pendent").length, color: C.warn },
           { label: "Canvis horari", value: canvis.filter(c => c.estat === "pendent").length, color: C.olive },
         ].map(s => (
-          <div key={s.label} style={{ background: s.accent ? C.oliveDark : C.white, borderRadius: 12, padding: mobile ? "14px" : "18px 20px", border: `0.5px solid ${C.border}` }}>
-            <div style={{ fontSize: 9, letterSpacing: "2px", textTransform: "uppercase", color: s.accent ? "rgba(255,255,255,0.4)" : C.soft, marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 28 : 32, fontWeight: 700, color: s.accent ? C.white : (s.color || C.oliveDark), lineHeight: 1 }}>{s.value}</div>
+          <div key={s.label} style={{ background: s.accent ? C.oliveDark : C.white, borderRadius: 10, padding: mobile ? "12px" : "18px 20px", border: `0.5px solid ${C.border}`, minWidth: 0 }}>
+            <div style={{ fontSize: 8, letterSpacing: "1.5px", textTransform: "uppercase", color: s.accent ? "rgba(255,255,255,0.4)" : C.soft, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 24 : 32, fontWeight: 700, color: s.accent ? C.white : (s.color || C.oliveDark), lineHeight: 1 }}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -960,7 +960,7 @@ function PanelRosario() {
   };
 
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.oliveXpale, minHeight: "100vh", color: C.dark }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.oliveXpale, minHeight: "100vh", color: C.dark, overflowX: "hidden", maxWidth: "100vw" }}>
       {mobile ? (
         <>
           <div style={{ background: C.oliveDark, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
