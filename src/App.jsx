@@ -289,10 +289,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     setMotiu("");
     fetchDades();
     // Crear notificacio per a la professora
-    const franja = modalCancelar?.franges;
-    if (franja?.professora_id) {
-      const nextDate = getNextDate(franja.dia_setmana);
-      const missatge = `${alumna.nom} ${alumna.cognom} ha cancel·lat la classe del ${formatDataCurta(nextDate)} a les ${franja.hora_inici?.slice(0,5)}`;
+    const franjaObj = modalCancelar?.franges;
+    if (franjaObj?.professora_id) {
+      const nextDate = getNextDate(franjaObj.dia_setmana);
+      const missatge = `${alumna.nom} ${alumna.cognom} ha cancel·lat la classe del ${formatDataCurta(nextDate)} a les ${franjaObj.hora_inici?.slice(0,5)}`;
       await supabase.from("notificacions").insert([{
         alumna_id: alumna.id,
         tipus: "cancelacio",
