@@ -288,6 +288,20 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     setModalCancelar(null);
     setMotiu("");
     fetchDades();
+    // Crear notificacio per a la professora
+    const franja = modalCancelar?.franges;
+    if (franja?.professora_id) {
+      const nextDate = getNextDate(franja.dia_setmana);
+      const missatge = `${alumna.nom} ${alumna.cognom} ha cancel·lat la classe del ${formatDataCurta(nextDate)} a les ${franja.hora_inici?.slice(0,5)}`;
+      await supabase.from("notificacions").insert([{
+        alumna_id: alumna.id,
+        tipus: "cancelacio",
+        canal: "app",
+        missatge,
+        estat: "pendent"
+      }]);
+    }
+
     if (tipusCancelacio === "mes_24h") {
       alert("Classe cancel.lada. Tens 30 dies per recuperar-la des del calendari!");
     } else {
@@ -1131,6 +1145,286 @@ function PanelRosario() {
   );
 }
 
+// ── LOGIN PROFESSORA ─────────────────────────────────────
+function LoginProfessora({ onLogin }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin() {
+    if (!pin) return setError("Introdueix el teu PIN");
+    setLoading(true);
+    setError("");
+    const { data, error: err } = await supabase.from("professores").select("*").eq("pin", pin).eq("activa", true).single();
+    setLoading(false);
+    if (err || !data) {
+      setError("PIN incorrecte. Contacta amb Rosario.");
+      return;
+    }
+    onLogin(data);
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ width: "100%", maxWidth: 340, position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>et cuida.</div>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 6 }}>Acces professores</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24 }}>Introdueix el teu PIN personal</div>
+          <Field label="PIN" value={pin} onChange={v => { setPin(v); setError(""); }} placeholder="••••" type="password" />
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 14, borderRadius: 10, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Comprovant..." : "Entrar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PANEL PROFESSORA ──────────────────────────────────────
+function PanelProfessora({ professora, onLogout }) {
+  const mobile = useIsMobile();
+  const [classes, setClasses] = useState([]);
+  const [notificacions, setNotificacions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("setmana");
+  const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+
+  useEffect(() => { fetchDades(); }, []);
+
+  async function fetchDades() {
+    setLoading(true);
+    const avui = new Date();
+    const diaSemana = avui.getDay() === 0 ? 7 : avui.getDay();
+    const inicSemana = new Date(avui);
+    inicSemana.setDate(avui.getDate() - diaSemana + 1);
+    const fiSemana = new Date(inicSemana);
+    fiSemana.setDate(inicSemana.getDate() + 6);
+    const inicStr = inicSemana.toISOString().split("T")[0];
+    const fiStr = fiSemana.toISOString().split("T")[0];
+
+    // Get franges for this professora
+    const { data: franges } = await supabase.from("franges")
+      .select("*, serveis(*)")
+      .eq("professora_id", professora.id)
+      .eq("activa", true);
+
+    if (franges && franges.length > 0) {
+      const franjaIds = franges.map(f => f.id);
+
+      // Get horaris alumnes for these franges (shows who attends each class)
+      const { data: horarisData } = await supabase.from("horaris_alumnes")
+        .select("*, alumnes(nom, cognom, telefon), franges(dia_setmana, hora_inici, hora_fi, serveis(nom))")
+        .in("franja_id", franjaIds)
+        .eq("actiu", true)
+        .eq("tipus", "fix");
+
+      // Get assistencies (cancelations this week)
+      const { data: assistenciesData } = await supabase.from("assistencies")
+        .select("*, alumnes(nom, cognom), classes(data, franja_id, franges(hora_inici, serveis(nom)))")
+        .in("classes.franja_id", franjaIds)
+        .eq("estat", "cancelada")
+        .gte("classes.data", inicStr)
+        .lte("classes.data", fiStr);
+
+      // Build weekly schedule
+      const setmana = [];
+      for (let dia = 1; dia <= 5; dia++) {
+        const dataObj = new Date(inicSemana);
+        dataObj.setDate(inicSemana.getDate() + dia - 1);
+        const dataStr = dataObj.toISOString().split("T")[0];
+        const frangesDia = franges.filter(f => f.dia_setmana === dia);
+        if (frangesDia.length > 0) {
+          setmana.push({
+            dia, dataObj, dataStr,
+            franges: frangesDia.map(f => ({
+              ...f,
+              alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
+              cancelades: (assistenciesData || []).filter(a => a.classes?.franja_id === f.id && a.classes?.data === dataStr),
+            }))
+          });
+        }
+      }
+      setClasses(setmana);
+    } else {
+      setClasses([]);
+    }
+
+    // Get notificacions
+    const { data: nots } = await supabase.from("notificacions")
+      .select("*, alumnes(nom, cognom)")
+      .eq("canal", "app")
+      .eq("estat", "pendent")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (nots) setNotificacions(nots);
+
+    setLoading(false);
+  }
+
+  async function marcarLlegida(id) {
+    await supabase.from("notificacions").update({ estat: "enviada" }).eq("id", id);
+    fetchDades();
+  }
+
+  const avui = new Date();
+  const diaSemanaAvui = avui.getDay() === 0 ? 7 : avui.getDay();
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.oliveXpale, overflowX: "hidden" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+      <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+        <div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 13 }}>et cuida.</span></div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{professora.nom}</div>
+          {notificacions.length > 0 && (
+            <div style={{ background: C.terra, color: "white", fontSize: 10, fontWeight: 700, width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{notificacions.length}</div>
+          )}
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
+        </div>
+      </div>
+
+      <div style={{ padding: "16px 16px 80px" }}>
+        {loading ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark }}>
+                Bon dia, <em style={{ color: C.terra, fontWeight: 400 }}>{professora.nom}.</em>
+              </div>
+              <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4 }}>
+                {new Date().toLocaleDateString("ca-ES", { weekday: "long", day: "numeric", month: "long" })}
+              </div>
+            </div>
+
+            {notificacions.length > 0 && tab === "setmana" && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.terra, marginBottom: 8 }}>Notificacions pendents</div>
+                {notificacions.map(n => (
+                  <div key={n.id} style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <span style={{ fontSize: 16 }}>🔔</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: C.warn }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
+                      <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, marginTop: 2 }}>{n.missatge}</div>
+                      <div style={{ fontSize: 10, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
+                    </div>
+                    <button style={{ ...btn("secondary"), fontSize: 10, padding: "3px 8px", flexShrink: 0 }} onClick={() => marcarLlegida(n.id)}>✓ Llegida</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === "setmana" && (
+              <>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Classes aquesta setmana</div>
+                {classes.length === 0 ? (
+                  <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens classes assignades aquesta setmana</div>
+                  </div>
+                ) : (
+                  classes.map(dia => (
+                    <div key={dia.dia} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: dia.dia === diaSemanaAvui ? C.terra : C.oliveDark }}>
+                          {dies[dia.dia]}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.soft }}>{dia.dataObj.getDate()} de {["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"][dia.dataObj.getMonth()+1]}</div>
+                        {dia.dia === diaSemanaAvui && <span style={tag("warn")}>Avui</span>}
+                      </div>
+                      {dia.franges.map(f => (
+                        <div key={f.id} style={{ ...card, marginBottom: 8 }}>
+                          <div style={{ padding: "12px 16px", borderBottom: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
+                              <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length} alumnes</div>
+                              {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
+                            </div>
+                          </div>
+                          {f.alumnes.map((h, i) => {
+                            const cancelada = f.cancelades.some(c => c.alumna_id === h.alumna_id);
+                            return (
+                              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: i < f.alumnes.length - 1 ? `0.5px solid ${C.border}` : "none", opacity: cancelada ? 0.4 : 1 }}>
+                                <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
+                                  {h.alumnes?.nom?.[0] || "?"}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                                  {cancelada && <div style={{ fontSize: 11, color: C.danger }}>Ha cancel·lat</div>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {f.alumnes.length === 0 && (
+                            <div style={{ padding: "12px 16px", fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+
+            {tab === "notificacions" && (
+              <>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Totes les notificacions</div>
+                {notificacions.length === 0 ? (
+                  <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens notificacions pendents</div>
+                  </div>
+                ) : (
+                  <div style={card}>
+                    {notificacions.map((n, i, arr) => (
+                      <div key={n.id} style={{ padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <span style={{ fontSize: 16 }}>🔔</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
+                            <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>{n.missatge}</div>
+                            <div style={{ fontSize: 10, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
+                          </div>
+                          <button style={{ ...btn("success"), fontSize: 10, padding: "3px 8px" }} onClick={() => marcarLlegida(n.id)}>✓</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 200, display: "flex" }}>
+        {[
+          { key: "setmana", label: "Setmana", icon: "📅" },
+          { key: "notificacions", label: "Avisos", icon: "🔔", count: notificacions.length },
+        ].map(item => (
+          <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
+            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 9, fontWeight: 500, color: tab === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
+            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── PANTALLA LOGIN ROSARIO ────────────────────────────────
 function LoginRosario({ onLogin }) {
   const [pin, setPin] = useState("");
@@ -1176,8 +1470,12 @@ function Home() {
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>Soc alumna</div>
             <div>Accedeix a la teva area personal</div>
           </button>
-          <button onClick={() => navigate("/admin")} style={{ background: "rgba(255,255,255,0.08)", color: C.white, border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
-            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 4 }}>Administracio</div>
+          <button onClick={() => navigate("/professora")} style={{ background: "rgba(255,255,255,0.06)", color: C.white, border: "0.5px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 4 }}>Soc professora</div>
+            <div>Veure les meves classes</div>
+          </button>
+          <button onClick={() => navigate("/admin")} style={{ background: "rgba(255,255,255,0.04)", color: C.white, border: "0.5px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 12, opacity: 0.4, marginBottom: 4 }}>Administracio</div>
             <div>Panel de Rosario</div>
           </button>
         </div>
@@ -1191,6 +1489,12 @@ function AlumnaRoute() {
   const [alumna, setAlumna] = useState(null);
   if (!alumna) return <LoginAlumna onLogin={setAlumna} />;
   return <VistaAlumnaPanel alumna={alumna} onLogout={() => setAlumna(null)} />;
+}
+
+function ProfessoraRoute() {
+  const [professora, setProfessora] = useState(null);
+  if (!professora) return <LoginProfessora onLogin={setProfessora} />;
+  return <PanelProfessora professora={professora} onLogout={() => setProfessora(null)} />;
 }
 
 function AdminRoute() {
@@ -1207,6 +1511,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/alumna" element={<AlumnaRoute />} />
+          <Route path="/professora" element={<ProfessoraRoute />} />
           <Route path="/admin" element={<AdminRoute />} />
         </Routes>
       </BrowserRouter>
