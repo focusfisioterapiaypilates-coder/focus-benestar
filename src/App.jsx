@@ -195,7 +195,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const limitStr = limit.toISOString().split("T")[0];
     const avuiStr = avui.toISOString().split("T")[0];
     const [h, a, r, fr, oc] = await Promise.all([
-      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true),
+      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
       supabase.from("franges").select("*, serveis(*)").eq("activa", true),
@@ -336,17 +336,25 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     const franja = h.franges;
                     const servei = franja?.serveis;
                     const nextDate = franja ? getNextDate(franja.dia_setmana) : null;
+                    const esPuntual = h.tipus === "puntual";
+                    const dataText = esPuntual && h.data_classe
+                      ? formatDataCurta(new Date(h.data_classe + "T12:00:00"))
+                      : (nextDate ? formatDataCurta(nextDate) : "");
                     return (
-                      <div key={h.id} style={{ background: C.oliveDark, borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden" }}>
+                      <div key={h.id} style={{ background: esPuntual ? C.terraDark : C.oliveDark, borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden" }}>
                         <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
-                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Proxima classe</div>
+                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>
+                          {esPuntual ? "Classe puntual" : "Proxima classe"}
+                        </div>
                         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
                         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: 16 }}>
-                          {nextDate ? formatDataCurta(nextDate) : ""} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
+                          {dataText} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
                         </div>
-                        <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
-                          Cancel.lar aquesta classe
-                        </button>
+                        {!esPuntual && (
+                          <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
+                            Cancel.lar aquesta classe
+                          </button>
+                        )}
                       </div>
                     );
                   })
@@ -621,6 +629,13 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 
   async function fetchHoraris() {
     setLoadingH(true);
+    const avui = new Date().toISOString().split("T")[0];
+    // Auto-desactivar classes puntuals passades
+    await supabase.from("horaris_alumnes")
+      .update({ actiu: false })
+      .eq("alumna_id", alumna.id)
+      .eq("tipus", "puntual")
+      .lt("data_classe", avui);
     const { data } = await supabase.from("horaris_alumnes")
       .select("*, franges(*, serveis(*))")
       .eq("alumna_id", alumna.id)
@@ -636,13 +651,21 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
     if (fr) setFranges(fr);
   }
 
+  const [tipusHorari, setTipusHorari] = useState("fix");
+  const [dataPuntual, setDataPuntual] = useState("");
+
   async function handleAddHorari() {
     if (!selectedFranja) return alert("Selecciona una franja");
-    if (horaris.length >= 3) return alert("Maxim 3 horaris per alumna");
-    const { error } = await supabase.from("horaris_alumnes").insert([{ alumna_id: alumna.id, franja_id: selectedFranja, actiu: true }]);
+    if (tipusHorari === "fix" && horaris.filter(h => h.tipus === "fix").length >= 3) return alert("Maxim 3 horaris fixos per alumna");
+    if (tipusHorari === "puntual" && !dataPuntual) return alert("Selecciona la data de la classe puntual");
+    const insert = { alumna_id: alumna.id, franja_id: selectedFranja, actiu: true, tipus: tipusHorari };
+    if (tipusHorari === "puntual") insert.data_classe = dataPuntual;
+    const { error } = await supabase.from("horaris_alumnes").insert([insert]);
     if (error) return alert("Error: " + error.message);
     setShowAddHorari(false);
     setSelectedFranja("");
+    setDataPuntual("");
+    setTipusHorari("fix");
     fetchHoraris();
     onRefresh();
   }
@@ -691,7 +714,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
         <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic", marginBottom: 12 }}>Carregant...</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-          {horaris.map(h => (
+          {horaris.filter(h => h.tipus === "fix" || !h.tipus).map(h => (
             <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.oliveXpale, borderRadius: 9, border: `0.5px solid ${C.border}` }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.oliveDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
@@ -699,6 +722,21 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
                   {dies[h.franges?.dia_setmana] || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
                 </div>
               </div>
+              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 11 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
+            </div>
+          ))}
+          {horaris.filter(h => h.tipus === "puntual").length > 0 && (
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.terra, margin: "10px 0 6px" }}>Classes puntuals</div>
+          )}
+          {horaris.filter(h => h.tipus === "puntual").map(h => (
+            <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.terraPale, borderRadius: 9, border: `0.5px solid rgba(193,123,90,0.2)` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.terraDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
+                <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                  {h.data_classe || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
+                </div>
+              </div>
+              <span style={{ ...tag("warn"), marginRight: 6 }}>Puntual</span>
               <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 11 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
             </div>
           ))}
@@ -712,7 +750,22 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 
       {showAddHorari && (
         <div style={{ background: C.oliveXpale, borderRadius: 10, padding: 14, marginBottom: 16, border: `0.5px solid ${C.border}` }}>
-          <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Selecciona franja</div>
+          <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Tipus de classe</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <button onClick={() => setTipusHorari("fix")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "fix" ? C.olive : C.border}`, background: tipusHorari === "fix" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: tipusHorari === "fix" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+              Horari fix
+            </button>
+            <button onClick={() => setTipusHorari("puntual")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "puntual" ? C.terra : C.border}`, background: tipusHorari === "puntual" ? C.terraPale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: tipusHorari === "puntual" ? C.terraDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+              Classe puntual
+            </button>
+          </div>
+          {tipusHorari === "puntual" && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data de la classe</div>
+              <input type="date" value={dataPuntual} onChange={e => setDataPuntual(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          )}
           <div style={{ marginBottom: 8 }}>
             <select value={filterServei} onChange={e => { setFilterServei(e.target.value); setSelectedFranja(""); }}
               style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", marginBottom: 6 }}>
@@ -730,7 +783,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
             </select>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowAddHorari(false); setSelectedFranja(""); }}>Cancel.lar</button>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowAddHorari(false); setSelectedFranja(""); setTipusHorari("fix"); setDataPuntual(""); }}>Cancel.lar</button>
             <button style={{ ...btn("primary"), flex: 1 }} onClick={handleAddHorari}>Assignar</button>
           </div>
         </div>
