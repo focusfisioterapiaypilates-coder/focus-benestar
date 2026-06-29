@@ -595,9 +595,29 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
   const [showAddHorari, setShowAddHorari] = useState(false);
   const [selectedFranja, setSelectedFranja] = useState("");
   const [filterServei, setFilterServei] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({ nom: alumna.nom, cognom: alumna.cognom, telefon: alumna.telefon, email: alumna.email || "", notes: alumna.notes || "" });
+  const [saving, setSaving] = useState(false);
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
 
   useEffect(() => { fetchHoraris(); fetchFranges(); }, []);
+
+  async function handleSaveEdit() {
+    if (!editForm.nom || !editForm.cognom || !editForm.telefon) return alert("Nom, cognoms i telefon son obligatoris");
+    setSaving(true);
+    const { error } = await supabase.from("alumnes").update({
+      nom: editForm.nom.trim(),
+      cognom: editForm.cognom.trim(),
+      telefon: editForm.telefon.trim(),
+      email: editForm.email.trim(),
+      notes: editForm.notes.trim(),
+    }).eq("id", alumna.id);
+    setSaving(false);
+    if (error) return alert("Error: " + error.message);
+    setEditMode(false);
+    onRefresh();
+    alert("Dades actualitzades correctament!");
+  }
 
   async function fetchHoraris() {
     setLoadingH(true);
@@ -643,10 +663,26 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
   const serveisUnics = [...new Set(franges.map(f => f.serveis?.nom).filter(Boolean))];
 
   return (
-    <Modal title={`${alumna.nom} ${alumna.cognom}`} sub={alumna.telefon} onClose={onClose}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+    <Modal title={editMode ? "Editar alumna" : `${alumna.nom} ${alumna.cognom}`} sub={editMode ? "" : alumna.telefon} onClose={onClose}>
+
+      {editMode ? (
+        <>
+          <Field label="Nom *" value={editForm.nom} onChange={v => setEditForm({...editForm, nom: v})} placeholder="Anna" />
+          <Field label="Cognoms *" value={editForm.cognom} onChange={v => setEditForm({...editForm, cognom: v})} placeholder="Costa Puig" />
+          <Field label="Telefon WhatsApp *" value={editForm.telefon} onChange={v => setEditForm({...editForm, telefon: v})} placeholder="+376 600 111" />
+          <Field label="Email" value={editForm.email} onChange={v => setEditForm({...editForm, email: v})} placeholder="anna@gmail.com" />
+          <Field label="Notes internes" value={editForm.notes} onChange={v => setEditForm({...editForm, notes: v})} placeholder="Embaras, lesio..." />
+          <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setEditMode(false)}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={handleSaveEdit} disabled={saving}>{saving ? "Guardant..." : "Guardar canvis"}</button>
+          </div>
+        </>
+      ) : (
+      <>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span style={tag(alumna.activa ? "ok" : "cancel")}>{alumna.activa ? "Activa" : "Baixa"}</span>
         {alumna.notes && <span style={tag("olive")}>{alumna.notes}</span>}
+        <button style={{ ...btn("secondary"), marginLeft: "auto", padding: "4px 10px", fontSize: 11 }} onClick={() => setEditMode(true)}>✏️ Editar dades</button>
       </div>
 
       <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Horaris fixos ({horaris.length}/3)</div>
@@ -705,6 +741,8 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
           {alumna.activa ? "Donar de baixa" : "Reactivar alumna"}
         </button>
       </div>
+      </>
+      )}
     </Modal>
   );
 }
