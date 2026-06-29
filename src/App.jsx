@@ -144,25 +144,49 @@ function formatDataCurta(date) {
   return `${dies[dia]} ${date.getDate()} de ${mesos[date.getMonth()]}`;
 }
 
-function generateSlots(franges, ocupacions) {
+function generateSlots(franges, horarisFixos, assistencies) {
   const slots = [];
   const avui = new Date();
   avui.setHours(0,0,0,0);
   const limit = new Date(avui);
   limit.setDate(avui.getDate() + 30);
+
   for (let d = new Date(avui); d <= limit; d.setDate(d.getDate() + 1)) {
     const diaSemana = d.getDay() === 0 ? 7 : d.getDay();
     if (diaSemana > 5) continue;
     const dateStr = d.toISOString().split("T")[0];
+
     franges.forEach(f => {
       if (f.dia_setmana !== diaSemana) return;
-      const ocupades = ocupacions.filter(o => o.franja_id === f.id && o.data === dateStr && o.estat !== "cancelada").length;
       const max = f.serveis?.max_alumnes || 3;
-      const lliures = max - ocupades;
+
+      // Count fixed horaris for this franja (always occupy a spot)
+      const fixos = horarisFixos.filter(h =>
+        h.franja_id === f.id && h.actiu && (h.tipus === "fix" || !h.tipus)
+      ).length;
+
+      // Count puntual classes for this specific date
+      const puntuals = horarisFixos.filter(h =>
+        h.franja_id === f.id && h.actiu && h.tipus === "puntual" && h.data_classe === dateStr
+      ).length;
+
+      // Count cancellations for this specific date (frees up spots)
+      const cancelades = assistencies.filter(a =>
+        a.franja_id === f.id && a.data === dateStr && a.estat === "cancelada"
+      ).length;
+
+      // Count recuperacions for this date (occupies spots)
+      const recuperacions = assistencies.filter(a =>
+        a.franja_id === f.id && a.data === dateStr && a.estat === "recuperacio"
+      ).length;
+
+      const ocupades = fixos + puntuals - cancelades + recuperacions;
+      const lliures = Math.max(0, max - ocupades);
+
       if (lliures > 0) {
         slots.push({
           franja_id: f.id, franja: f, data: dateStr, dataObj: new Date(d),
-          lliures, max, servei: f.serveis?.nom || "",
+          lliures, max, ocupades, servei: f.serveis?.nom || "",
           hora: f.hora_inici?.slice(0,5) || "", hora_fi: f.hora_fi?.slice(0,5) || "",
         });
       }
@@ -194,26 +218,39 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     limit.setDate(avui.getDate() + 30);
     const limitStr = limit.toISOString().split("T")[0];
     const avuiStr = avui.toISOString().split("T")[0];
-    const [h, a, r, fr, oc] = await Promise.all([
+    const [h, a, r, fr, totsHoraris, assistenciesClasses] = await Promise.all([
+      // This alumna's horaris
       supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
+      // This alumna's assistencies history
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
+      // This alumna's recuperacions
       supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
+      // All franges
       supabase.from("franges").select("*, serveis(*)").eq("activa", true),
-      supabase.from("classes").select("*, assistencies(estat, alumna_id)").gte("data", avuiStr).lte("data", limitStr),
+      // ALL horaris fixos (to count real occupancy per franja)
+      supabase.from("horaris_alumnes").select("franja_id, actiu, tipus, data_classe").eq("actiu", true),
+      // All assistencies for next 30 days (cancelations + recuperacions)
+      supabase.from("assistencies").select("estat, classes(franja_id, data)").gte("classes.data", avuiStr).lte("classes.data", limitStr),
     ]);
     if (h.data) setHoraris(h.data);
     if (a.data) setAssistencies(a.data);
     if (r.data) setRecuperacions(r.data);
     if (fr.data) setFranges(fr.data);
-    if (oc.data) {
-      const flat = [];
-      oc.data.forEach(cl => {
-        (cl.assistencies || []).forEach(ass => {
-          flat.push({ franja_id: cl.franja_id, data: cl.data, estat: ass.estat });
-        });
+    // Build ocupacions flat list from assistencies
+    const flat = [];
+    if (assistenciesClasses.data) {
+      assistenciesClasses.data.forEach(ass => {
+        if (ass.classes) {
+          flat.push({ franja_id: ass.classes.franja_id, data: ass.classes.data, estat: ass.estat });
+        }
       });
-      setOcupacions(flat);
     }
+    // Store all horaris for occupancy calculation
+    if (totsHoraris.data) setOcupacions(totsHoraris.data);
+    // We'll use a combined state - repurpose ocupacions to store all horaris fixos
+    // and pass assistencies flat to generateSlots via a ref
+    if (totsHoraris.data) setOcupacions(totsHoraris.data);
+    window._assistenciesFlat = flat;
     setLoading(false);
   }
 
@@ -285,7 +322,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   }
 
   const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
-  const slots = generateSlots(franges, ocupacions);
+  const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || []);
 
   return (
     <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%" }}>
