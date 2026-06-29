@@ -144,7 +144,7 @@ function formatDataCurta(date) {
   return `${dies[dia]} ${date.getDate()} de ${mesos[date.getMonth()]}`;
 }
 
-function generateSlots(franges, horarisFixos, assistencies) {
+function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
   const slots = [];
   const avui = new Date();
   avui.setHours(0,0,0,0);
@@ -158,6 +158,8 @@ function generateSlots(franges, horarisFixos, assistencies) {
 
     franges.forEach(f => {
       if (f.dia_setmana !== diaSemana) return;
+      // Skip blocked dates
+      if (bloquejos.some(b => b.franja_id === f.id && b.data === dateStr)) return;
       const max = f.serveis?.max_alumnes || 3;
 
       // Count fixed horaris for this franja (always occupy a spot)
@@ -251,6 +253,12 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     // and pass assistencies flat to generateSlots via a ref
     if (totsHoraris.data) setOcupacions(totsHoraris.data);
     window._assistenciesFlat = flat;
+
+    // Fetch bloquejos
+    const avuiStr2 = avui.toISOString().split("T")[0];
+    const { data: bloquejos } = await supabase.from("bloquejos").select("*").gte("data", avuiStr2).lte("data", limitStr);
+    window._bloquejos = bloquejos || [];
+
     setLoading(false);
   }
 
@@ -336,7 +344,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   }
 
   const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
-  const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || []);
+  const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || [], window._bloquejos || []);
 
   return (
     <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%" }}>
@@ -1242,7 +1250,9 @@ function PanelProfessora({ professora, onLogout }) {
         if (frangesDia.length > 0) {
           setmana.push({
             dia, dataObj, dataStr,
-            franges: frangesDia.map(f => ({
+            franges: [...frangesDia]
+              .sort((a, b) => (a.hora_inici || "").localeCompare(b.hora_inici || ""))
+              .map(f => ({
               ...f,
               alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
               cancelades: (assistenciesData || []).filter(a => a.classes?.franja_id === f.id && a.classes?.data === dataStr),
@@ -1269,6 +1279,19 @@ function PanelProfessora({ professora, onLogout }) {
 
   async function marcarLlegida(id) {
     await supabase.from("notificacions").update({ estat: "enviada" }).eq("id", id);
+    fetchDades();
+  }
+
+  async function handleBloquejar(franjaId, data) {
+    if (!window.confirm(`Segur que vols bloquejar aquesta classe del ${data}? Les alumnes no podran veure-la al calendari.`)) return;
+    const { error } = await supabase.from("bloquejos").insert([{
+      franja_id: franjaId,
+      data: data,
+      bloquejat_per: professora.id,
+      motiu: "Classe bloquejada"
+    }]);
+    if (error) return alert("Error: " + error.message);
+    alert("Classe bloquejada correctament!");
     fetchDades();
   }
 
@@ -1349,9 +1372,10 @@ function PanelProfessora({ professora, onLogout }) {
                               <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
                               <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
                             </div>
-                            <div style={{ textAlign: "right" }}>
+                            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                               <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length} alumnes</div>
                               {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
+                              <button style={{ ...btn("danger"), fontSize: 10, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, dia.dataStr)}>Bloquejar</button>
                             </div>
                           </div>
                           {f.alumnes.map((h, i) => {
