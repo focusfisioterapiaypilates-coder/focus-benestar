@@ -213,6 +213,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   const [ocupacions, setOcupacions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalCancelar, setModalCancelar] = useState(null);
+  const [confirmacioCancel, setConfirmacioCancel] = useState(null); // { profeNom, profeTelefon, missatge }
   const [modalSlot, setModalSlot] = useState(null);
   const [motiu, setMotiu] = useState("");
   const [slotAction, setSlotAction] = useState("recuperacio");
@@ -228,13 +229,13 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const avuiStr = avui.toISOString().split("T")[0];
     const [h, a, r, fr, totsHoraris, assistenciesClasses] = await Promise.all([
       // This alumna's horaris
-      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(*))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
+      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(nom, telefon))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
       // This alumna's assistencies history
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
       // This alumna's recuperacions
       supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
       // All franges
-      supabase.from("franges").select("*, serveis(*)").eq("activa", true),
+      supabase.from("franges").select("*, serveis(*), professores(nom, telefon)").eq("activa", true),
       // ALL horaris fixos (to count real occupancy per franja)
       supabase.from("horaris_alumnes").select("franja_id, actiu, tipus, data_classe").eq("actiu", true),
       // All assistencies for next 30 days (cancelations + recuperacions)
@@ -303,9 +304,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     setMotiu("");
     fetchDades();
     // Crear notificacio per a la professora
-    const franjaObj = modalCancelar?.franges;
+    const franjaObj = h.franges;
     if (franjaObj?.professora_id) {
-      const nextDate = getNextDate(franjaObj.dia_setmana);
       const missatge = `${alumna.nom} ${alumna.cognom} ha cancel·lat la classe del ${formatDataCurta(nextDate)} a les ${franjaObj.hora_inici?.slice(0,5)}`;
       await supabase.from("notificacions").insert([{
         alumna_id: alumna.id,
@@ -314,6 +314,15 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
         missatge,
         estat: "pendent"
       }]);
+      if (franjaObj.professores?.telefon) {
+        setConfirmacioCancel({
+          profeNom: franjaObj.professores.nom,
+          missatgeWA: missatge,
+          telefon: franjaObj.professores.telefon,
+          tipusCancelacio,
+        });
+        return;
+      }
     }
 
     if (tipusCancelacio === "mes_24h") {
@@ -531,6 +540,22 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
           <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
             <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalCancelar(null)}>Tornar</button>
             <button style={{ ...btn("danger"), flex: 1 }} onClick={handleCancelar}>Si, cancel.lo</button>
+          </div>
+        </Modal>
+      )}
+
+      {confirmacioCancel && (
+        <Modal title="Classe cancel.lada" sub={confirmacioCancel.tipusCancelacio === "mes_24h" ? "Tens 30 dies per recuperar-la" : "Menys de 24h - no es pot recuperar"} onClose={() => setConfirmacioCancel(null)}>
+          <div style={{ background: C.successPale, border: `0.5px solid rgba(74,122,90,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.success, lineHeight: 1.6 }}>
+            La teva cancel.lacio s'ha registrat correctament. Vols avisar a {confirmacioCancel.profeNom} per WhatsApp?
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setConfirmacioCancel(null)}>Ara no</button>
+            <a href={whatsappLink(confirmacioCancel.telefon, confirmacioCancel.missatgeWA)} target="_blank" rel="noopener noreferrer"
+              onClick={() => setConfirmacioCancel(null)}
+              style={{ ...btn("primary"), flex: 1, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              💬 Avisar {confirmacioCancel.profeNom}
+            </a>
           </div>
         </Modal>
       )}
