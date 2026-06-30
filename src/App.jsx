@@ -414,17 +414,24 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     const dataText = esPuntual && h.data_classe
                       ? formatDataCurta(new Date(h.data_classe + "T12:00:00"))
                       : (nextDate ? formatDataCurta(nextDate) : "");
+                    // Comprovar si la propera classe d'aquesta franja ja esta cancel.lada
+                    const dataComparar = esPuntual ? h.data_classe : (nextDate ? nextDate.toISOString().split("T")[0] : null);
+                    const jaCancel·lada = assistencies.some(a =>
+                      a.classes?.franja_id === h.franja_id &&
+                      a.classes?.data === dataComparar &&
+                      a.estat === "cancelada"
+                    );
                     return (
-                      <div key={h.id} style={{ background: esPuntual ? C.terraDark : C.oliveDark, borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden" }}>
-                        <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
-                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>
-                          {esPuntual ? "Classe puntual" : "Proxima classe"}
+                      <div key={h.id} style={{ background: jaCancel·lada ? C.dangerPale : (esPuntual ? C.terraDark : C.oliveDark), borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden", border: jaCancel·lada ? `0.5px solid rgba(160,48,48,0.2)` : "none" }}>
+                        {!jaCancel·lada && <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>}
+                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.4)", marginBottom: 8 }}>
+                          {jaCancel·lada ? "Classe cancel.lada" : (esPuntual ? "Classe puntual" : "Proxima classe")}
                         </div>
-                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
-                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: 16 }}>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: jaCancel·lada ? C.danger : C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
+                        <div style={{ fontSize: 13, color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: jaCancel·lada ? 0 : 16 }}>
                           {dataText} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
                         </div>
-                        {!esPuntual && (
+                        {!esPuntual && !jaCancel·lada && (
                           <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
                             Cancel.lar aquesta classe
                           </button>
@@ -1091,12 +1098,11 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   async function aprovar(tabla, id) {
     await supabase.from(tabla).update({ estat: "aprovada" }).eq("id", id);
     setAprovats(prev => ({ ...prev, [id]: "aprovada" }));
-    setTimeout(() => onRefresh(), 300);
+    // No cridem onRefresh aqui - ho fara l'usuari quan tanqui la targeta
   }
   async function rebutjar(tabla, id) {
     await supabase.from(tabla).update({ estat: "rebutjada" }).eq("id", id);
     setAprovats(prev => ({ ...prev, [id]: "rebutjada" }));
-    setTimeout(() => onRefresh(), 300);
   }
   function tancar(id) {
     setAprovats(prev => {
@@ -1104,6 +1110,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       delete copy[id];
       return copy;
     });
+    onRefresh();
   }
 
   // Combine pendents amb els que acabem d'aprovar/rebutjar (encara no han desaparegut de la llista local)
