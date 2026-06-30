@@ -1057,6 +1057,7 @@ function VistaFranges({ mobile }) {
 
 function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   const [tab, setTab] = useState("recuperacions");
+  const [aprovats, setAprovats] = useState({}); // { id: { tipus: 'aprovada'|'rebutjada' } } - tracking local abans de refrescar
   const pendR = recuperacions.filter(r => r.estat === "pendent");
   const pendC = canvis.filter(c => c.estat === "pendent");
 
@@ -1064,12 +1065,25 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
 
   async function aprovar(tabla, id) {
     await supabase.from(tabla).update({ estat: "aprovada" }).eq("id", id);
+    setAprovats(prev => ({ ...prev, [id]: "aprovada" }));
     onRefresh();
   }
   async function rebutjar(tabla, id) {
     await supabase.from(tabla).update({ estat: "rebutjada" }).eq("id", id);
+    setAprovats(prev => ({ ...prev, [id]: "rebutjada" }));
     onRefresh();
   }
+  function tancar(id) {
+    setAprovats(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  }
+
+  // Combine pendents amb els que acabem d'aprovar/rebutjar (encara no han desaparegut de la llista local)
+  const recentsR = recuperacions.filter(r => aprovats[r.id]);
+  const recentsC = canvis.filter(c => aprovats[c.id]);
 
   return (
     <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
@@ -1082,11 +1096,34 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       </div>
       {tab === "recuperacions" && (
         <div style={card}>
-          {pendR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
+          {pendR.length === 0 && recentsR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
+          {recentsR.map((r, i) => {
+            const nomComplet = r.alumnes ? `${r.alumnes.nom} ${r.alumnes.cognom}` : "Alumna";
+            const esAprovada = aprovats[r.id] === "aprovada";
+            const missatge = esAprovada
+              ? `Hola ${r.alumnes?.nom || ""}! T'confirmem la teva recuperacio${r.data_proposta_alumna ? " pel " + r.data_proposta_alumna : ""}. Ens veiem a Focus Benestar!`
+              : `Hola ${r.alumnes?.nom || ""}! Ho sentim pero no podem confirmar aquesta recuperacio. Contacta amb nosaltres per buscar una altra opcio.`;
+            const waLink = whatsappLink(r.alumnes?.telefon, missatge);
+            return (
+            <div key={r.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: `0.5px solid ${C.border}`, background: esAprovada ? C.successPale : C.dangerPale }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <span style={tag(esAprovada ? "ok" : "cancel")}>{esAprovada ? "Aprovada" : "Rebutjada"}</span>
+              </div>
+              {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Data: {r.data_proposta_alumna}</div>}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {waLink && (
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    💬 Enviar avis per WhatsApp
+                  </a>
+                )}
+                <button style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px" }} onClick={() => tancar(r.id)}>Tancar</button>
+              </div>
+            </div>
+            );
+          })}
           {pendR.map((r, i) => {
             const nomComplet = r.alumnes ? `${r.alumnes.nom} ${r.alumnes.cognom}` : "Alumna";
-            const missatgeAprovat = `Hola ${r.alumnes?.nom || ""}! T'confirmem la teva recuperacio${r.data_proposta_alumna ? " pel " + r.data_proposta_alumna : ""}. Ens veiem a Focus Benestar!`;
-            const waLink = whatsappLink(r.alumnes?.telefon, missatgeAprovat);
             return (
             <div key={r.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendR.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1097,11 +1134,6 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("recuperacions", r.id)}>Aprovar</button>
                 <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("recuperacions", r.id)}>Rebutjar</button>
-                {waLink && (
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    💬 WhatsApp
-                  </a>
-                )}
               </div>
             </div>
             );
@@ -1110,14 +1142,36 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       )}
       {tab === "canvis" && (
         <div style={card}>
-          {pendC.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha canvis pendents</div>}
+          {pendC.length === 0 && recentsC.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha canvis pendents</div>}
+          {recentsC.map((c, i) => {
+            const nomComplet = c.alumnes ? `${c.alumnes.nom} ${c.alumnes.cognom}` : "Alumna";
+            const horariText = c.franges ? `${dies[c.franges.dia_setmana]} ${c.franges.hora_inici?.slice(0,5)}` : "";
+            const esAprovada = aprovats[c.id] === "aprovada";
+            const missatge = esAprovada
+              ? `Hola ${c.alumnes?.nom || ""}! T'confirmem el canvi d'horari${horariText ? " a " + horariText : ""}. Ens veiem a Focus Benestar!`
+              : `Hola ${c.alumnes?.nom || ""}! Ho sentim pero no podem confirmar aquest canvi d'horari. Contacta amb nosaltres per buscar una altra opcio.`;
+            const waLink = whatsappLink(c.alumnes?.telefon, missatge);
+            return (
+            <div key={c.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: `0.5px solid ${C.border}`, background: esAprovada ? C.successPale : C.dangerPale }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <span style={tag(esAprovada ? "ok" : "cancel")}>{esAprovada ? "Aprovada" : "Rebutjada"}</span>
+              </div>
+              {horariText && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Horari: {horariText}</div>}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {waLink && (
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    💬 Enviar avis per WhatsApp
+                  </a>
+                )}
+                <button style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px" }} onClick={() => tancar(c.id)}>Tancar</button>
+              </div>
+            </div>
+            );
+          })}
           {pendC.map((c, i) => {
             const nomComplet = c.alumnes ? `${c.alumnes.nom} ${c.alumnes.cognom}` : "Alumna";
             const horariText = c.franges ? `${dies[c.franges.dia_setmana]} ${c.franges.hora_inici?.slice(0,5)}` : "";
-            const missatgeAprovat = `Hola ${c.alumnes?.nom || ""}! T'confirmem el canvi d'horari${horariText ? " a " + horariText : ""}. Ens veiem a Focus Benestar!`;
-            const missatgeRebutjat = `Hola ${c.alumnes?.nom || ""}! Ho sentim pero no podem confirmar aquest canvi d'horari. Contacta amb nosaltres per buscar una altra opcio.`;
-            const waLinkAprovat = whatsappLink(c.alumnes?.telefon, missatgeAprovat);
-            const waLinkRebutjat = whatsappLink(c.alumnes?.telefon, missatgeRebutjat);
             return (
             <div key={c.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendC.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1129,11 +1183,6 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("canvis_horari", c.id)}>Aprovar</button>
                 <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("canvis_horari", c.id)}>Rebutjar</button>
-                {waLinkAprovat && (
-                  <a href={waLinkAprovat} target="_blank" rel="noopener noreferrer" style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    💬 Avisar (OK)
-                  </a>
-                )}
               </div>
             </div>
             );
