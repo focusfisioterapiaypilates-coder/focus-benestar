@@ -160,7 +160,7 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
       if (f.dia_setmana !== diaSemana) return;
       // Skip blocked dates
       if (bloquejos.some(b => b.franja_id === f.id && b.data === dateStr)) return;
-      const max = f.serveis?.max_alumnes || 3;
+      const max = f.tipus_classe === "individual" ? 1 : 3;
 
       // Count fixed horaris for this franja (always occupy a spot)
       const fixos = horarisFixos.filter(h =>
@@ -563,6 +563,7 @@ function Sidebar({ active, setActive, counts }) {
   const items = [
     { key: "avui", label: "Avui", section: "Principal" },
     { key: "alumnes", label: "Alumnes", section: "Gestio" },
+    { key: "franges", label: "Franges horaries" },
     { key: "espera", label: "Llista d'espera", count: counts.espera },
     { key: "recuperacions", label: "Recuperacions", count: counts.recuperacions },
     { key: "canvis", label: "Canvis d'horari", count: counts.canvis },
@@ -741,8 +742,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
     onClose();
   }
 
-  const frangesFiltrades = franges.filter(f => !filterServei || f.serveis?.nom === filterServei);
-  const serveisUnics = [...new Set(franges.map(f => f.serveis?.nom).filter(Boolean))];
+  const frangesFiltrades = franges;
 
   return (
     <Modal title={editMode ? "Editar alumna" : `${alumna.nom} ${alumna.cognom}`} sub={editMode ? "" : alumna.telefon} onClose={onClose}>
@@ -826,17 +826,12 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
             </div>
           )}
           <div style={{ marginBottom: 8 }}>
-            <select value={filterServei} onChange={e => { setFilterServei(e.target.value); setSelectedFranja(""); }}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", marginBottom: 6 }}>
-              <option value="">Tots els serveis</option>
-              {serveisUnics.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
             <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
               style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}>
               <option value="">Selecciona horari...</option>
               {frangesFiltrades.map(f => (
                 <option key={f.id} value={f.id}>
-                  {dies[f.dia_setmana]} {f.hora_inici?.slice(0,5)} — {f.serveis?.nom}
+                  {dies[f.dia_setmana]} {f.hora_inici?.slice(0,5)} — {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
                 </option>
               ))}
             </select>
@@ -998,6 +993,62 @@ function VistaEspera({ espera, onRefresh, mobile }) {
   );
 }
 
+function VistaFranges({ mobile }) {
+  const [franges, setFranges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+
+  useEffect(() => { fetchFranges(); }, []);
+
+  async function fetchFranges() {
+    setLoading(true);
+    const { data } = await supabase.from("franges").select("*, professores(nom)").eq("activa", true).order("dia_setmana").order("hora_inici");
+    if (data) setFranges(data);
+    setLoading(false);
+  }
+
+  async function toggleTipus(f) {
+    const nouTipus = f.tipus_classe === "individual" ? "grupal" : "individual";
+    await supabase.from("franges").update({ tipus_classe: nouTipus }).eq("id", f.id);
+    fetchFranges();
+  }
+
+  const grouped = {};
+  franges.forEach(f => {
+    if (!grouped[f.dia_setmana]) grouped[f.dia_setmana] = [];
+    grouped[f.dia_setmana].push(f);
+  });
+
+  return (
+    <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>Franges horaries</div>
+      <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Marca cada classe com a Grupal (3 places) o Individual (1 plaça)</div>
+      {loading ? (
+        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+      ) : (
+        Object.keys(grouped).sort().map(dia => (
+          <div key={dia} style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.oliveDark, marginBottom: 8 }}>{dies[dia]}</div>
+            <div style={card}>
+              {grouped[dia].map((f, i, arr) => (
+                <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                    <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{f.professores?.nom || "Sense professora"}</div>
+                  </div>
+                  <button onClick={() => toggleTipus(f)} style={{ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", background: f.tipus_classe === "individual" ? C.terraPale : C.successPale, color: f.tipus_classe === "individual" ? C.terraDark : C.success }}>
+                    {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   const [tab, setTab] = useState("recuperacions");
   const pendR = recuperacions.filter(r => r.estat === "pendent");
@@ -1121,6 +1172,7 @@ function PanelRosario() {
             <>
               {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile />}
               {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile />}
+              {active === "franges" && <VistaFranges mobile />}
               {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile />}
               {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile />}
             </>
@@ -1142,6 +1194,7 @@ function PanelRosario() {
               <>
                 {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile={false} />}
                 {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
+                {active === "franges" && <VistaFranges mobile={false} />}
                 {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile={false} />}
                 {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile={false} />}
               </>
