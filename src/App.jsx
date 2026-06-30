@@ -10,6 +10,12 @@ const C = {
   danger: "#a03030", dangerPale: "#fdf0f0", border: "rgba(107,107,68,0.15)",
 };
 
+function whatsappLink(telefon, missatge) {
+  if (!telefon) return null;
+  const tel = telefon.replace(/[^0-9+]/g, "").replace(/^\+/, "");
+  return `https://wa.me/${tel}?text=${encodeURIComponent(missatge)}`;
+}
+
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -1054,6 +1060,8 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   const pendR = recuperacions.filter(r => r.estat === "pendent");
   const pendC = canvis.filter(c => c.estat === "pendent");
 
+  const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+
   async function aprovar(tabla, id) {
     await supabase.from(tabla).update({ estat: "aprovada" }).eq("id", id);
     onRefresh();
@@ -1075,37 +1083,61 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       {tab === "recuperacions" && (
         <div style={card}>
           {pendR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
-          {pendR.map((r, i) => (
+          {pendR.map((r, i) => {
+            const nomComplet = r.alumnes ? `${r.alumnes.nom} ${r.alumnes.cognom}` : "Alumna";
+            const missatgeAprovat = `Hola ${r.alumnes?.nom || ""}! T'confirmem la teva recuperacio${r.data_proposta_alumna ? " pel " + r.data_proposta_alumna : ""}. Ens veiem a Focus Benestar!`;
+            const waLink = whatsappLink(r.alumnes?.telefon, missatgeAprovat);
+            return (
             <div key={r.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendR.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>Sol.licitud de recuperacio</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag("warn")}>Pendent</span>
               </div>
               {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Proposta: {r.data_proposta_alumna}{r.data_caducitat ? " · Caduca: " + r.data_caducitat : ""}</div>}
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("recuperacions", r.id)}>Aprovar</button>
                 <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("recuperacions", r.id)}>Rebutjar</button>
+                {waLink && (
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    💬 WhatsApp
+                  </a>
+                )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {tab === "canvis" && (
         <div style={card}>
           {pendC.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha canvis pendents</div>}
-          {pendC.map((c, i) => (
+          {pendC.map((c, i) => {
+            const nomComplet = c.alumnes ? `${c.alumnes.nom} ${c.alumnes.cognom}` : "Alumna";
+            const horariText = c.franges ? `${dies[c.franges.dia_setmana]} ${c.franges.hora_inici?.slice(0,5)}` : "";
+            const missatgeAprovat = `Hola ${c.alumnes?.nom || ""}! T'confirmem el canvi d'horari${horariText ? " a " + horariText : ""}. Ens veiem a Focus Benestar!`;
+            const missatgeRebutjat = `Hola ${c.alumnes?.nom || ""}! Ho sentim pero no podem confirmar aquest canvi d'horari. Contacta amb nosaltres per buscar una altra opcio.`;
+            const waLinkAprovat = whatsappLink(c.alumnes?.telefon, missatgeAprovat);
+            const waLinkRebutjat = whatsappLink(c.alumnes?.telefon, missatgeRebutjat);
+            return (
             <div key={c.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendC.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>Canvi d'horari</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag("warn")}>Pendent</span>
               </div>
+              {horariText && <div style={{ fontSize: 12, color: C.soft, marginBottom: 4 }}>Sol.licita: {horariText}</div>}
               {c.nota_alumna && <div style={{ fontSize: 12, color: C.mid, marginBottom: 10, fontStyle: "italic" }}>{c.nota_alumna}</div>}
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("canvis_horari", c.id)}>Aprovar</button>
                 <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("canvis_horari", c.id)}>Rebutjar</button>
+                {waLinkAprovat && (
+                  <a href={waLinkAprovat} target="_blank" rel="noopener noreferrer" style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    💬 Avisar (OK)
+                  </a>
+                )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {tab === "historial" && (
@@ -1142,8 +1174,8 @@ function PanelRosario() {
     const [a, e, r, c] = await Promise.all([
       supabase.from("alumnes").select("*").order("created_at", { ascending: false }),
       supabase.from("llista_espera").select("*").order("ordre", { ascending: true }),
-      supabase.from("recuperacions").select("*").order("created_at", { ascending: false }),
-      supabase.from("canvis_horari").select("*").order("created_at", { ascending: false }),
+      supabase.from("recuperacions").select("*, alumnes(nom, cognom, telefon)").order("created_at", { ascending: false }),
+      supabase.from("canvis_horari").select("*, alumnes(nom, cognom, telefon), franges(dia_setmana, hora_inici, hora_fi)").order("created_at", { ascending: false }),
     ]);
     if (a.data) setAlumnes(a.data);
     if (e.data) setEspera(e.data);
