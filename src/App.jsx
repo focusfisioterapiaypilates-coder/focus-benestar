@@ -645,6 +645,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 function Sidebar({ active, setActive, counts }) {
   const items = [
     { key: "avui", label: "Avui", section: "Principal" },
+    { key: "calendari", label: "Calendari" },
     { key: "alumnes", label: "Alumnes", section: "Gestio" },
     { key: "franges", label: "Franges horaries" },
     { key: "espera", label: "Llista d'espera", count: counts.espera },
@@ -682,8 +683,8 @@ function Sidebar({ active, setActive, counts }) {
 function BottomNav({ active, setActive, counts }) {
   const items = [
     { key: "avui", label: "Avui", Icon: IconHome },
+    { key: "calendari", label: "Calendari", Icon: IconCalendar },
     { key: "alumnes", label: "Alumnes", Icon: IconUsers },
-    { key: "espera", label: "Espera", Icon: IconClock, count: counts.espera },
     { key: "recuperacions", label: "Gestio", Icon: IconSettings, count: counts.recuperacions + counts.canvis },
   ];
   return (
@@ -1080,6 +1081,216 @@ function VistaEspera({ espera, onRefresh, mobile }) {
   );
 }
 
+// ── VISTA CALENDARI SETMANAL ──────────────────────────────
+function VistaCalendari({ mobile }) {
+  const [setmanaOffset, setSetmanaOffset] = useState(0);
+  const [diaSeleccionat, setDiaSeleccionat] = useState(null);
+  const [franges, setFranges] = useState([]);
+  const [horaris, setHoraris] = useState([]);
+  const [bloquejos, setBloquejos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const dies = ["Dil", "Dim", "Dim", "Dij", "Div"];
+  const diesComplets = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+  const mesos = ["gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"];
+
+  useEffect(() => { fetchDades(); }, [setmanaOffset]);
+
+  function getSetmana() {
+    const avui = new Date();
+    const diaSetmana = avui.getDay() === 0 ? 7 : avui.getDay();
+    const dilluns = new Date(avui);
+    dilluns.setDate(avui.getDate() - diaSetmana + 1 + setmanaOffset * 7);
+    return Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(dilluns);
+      d.setDate(dilluns.getDate() + i);
+      return d;
+    });
+  }
+
+  async function fetchDades() {
+    setLoading(true);
+    const setmana = getSetmana();
+    const inici = setmana[0].toISOString().split("T")[0];
+    const fi = setmana[4].toISOString().split("T")[0];
+    const [fr, ho, bl] = await Promise.all([
+      supabase.from("franges").select("*, serveis(*), professores(nom)").eq("activa", true).order("hora_inici"),
+      supabase.from("horaris_alumnes").select("*, alumnes(nom, cognom), franges(dia_setmana, hora_inici)").eq("actiu", true),
+      supabase.from("bloquejos").select("*").gte("data", inici).lte("data", fi),
+    ]);
+    if (fr.data) setFranges(fr.data);
+    if (ho.data) setHoraris(ho.data);
+    if (bl.data) setBloquejos(bl.data);
+    setLoading(false);
+  }
+
+  const setmana = getSetmana();
+  const avui = new Date();
+  avui.setHours(0,0,0,0);
+
+  // Get classes for a specific day
+  function getClassesDia(diaNum, dataObj) {
+    const dataStr = dataObj.toISOString().split("T")[0];
+    return franges
+      .filter(f => f.dia_setmana === diaNum)
+      .map(f => {
+        const alumnesDia = horaris.filter(h => h.franja_id === f.id && (h.tipus === "fix" || !h.tipus));
+        const bloq = bloquejos.some(b => b.franja_id === f.id && b.data === dataStr);
+        return { ...f, alumnes: alumnesDia, bloquejada: bloq };
+      });
+  }
+
+  // Colors per professora
+  const profeColors = {};
+  const colorPool = ["#6b6b44", "#c17b5a", "#5a7a6b", "#7a5a6b", "#5a6b7a", "#8a6b44"];
+  let colorIdx = 0;
+  franges.forEach(f => {
+    const nom = f.professores?.nom || "?";
+    if (!profeColors[nom]) { profeColors[nom] = colorPool[colorIdx % colorPool.length]; colorIdx++; }
+  });
+
+  if (diaSeleccionat !== null) {
+    const dataObj = setmana[diaSeleccionat];
+    const diaNum = diaSeleccionat + 1;
+    const classes = getClassesDia(diaNum, dataObj);
+    return (
+      <div style={{ padding: mobile ? "0 0 80px" : "0 0 80px" }}>
+        <div style={{ background: C.oliveDark, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => setDiaSeleccionat(null)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#faf8f4", fontSize: 13, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
+            ← Setmana
+          </button>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.white }}>
+            {diesComplets[diaSeleccionat]} {dataObj.getDate()} de {mesos[dataObj.getMonth()]}
+          </div>
+        </div>
+        <div style={{ padding: "16px 16px 0" }}>
+          {classes.length === 0 ? (
+            <div style={{ ...{background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 14}, padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>
+              Cap classe programada
+            </div>
+          ) : classes.map(cl => (
+            <div key={cl.id} style={{ background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 12, opacity: cl.bloquejada ? 0.5 : 1 }}>
+              <div style={{ background: cl.bloquejada ? C.dangerPale : (profeColors[cl.professores?.nom || "?"] || C.oliveDark), padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{cl.hora_inici?.slice(0,5)} – {cl.hora_fi?.slice(0,5)}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>{cl.serveis?.nom} · {cl.professores?.nom}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  {cl.bloquejada
+                    ? <span style={{ fontSize: 10, background: "rgba(255,255,255,0.2)", color: C.white, padding: "2px 8px", borderRadius: 20 }}>Bloquejada</span>
+                    : <span style={{ fontSize: 11, fontWeight: 600, color: C.white }}>{cl.alumnes.length}/{cl.tipus_classe === "individual" ? 1 : 3}</span>
+                  }
+                </div>
+              </div>
+              {!cl.bloquejada && cl.alumnes.map((h, i, arr) => (
+                <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 12, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>
+                    {h.alumnes?.nom?.[0] || "?"}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.dark }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                </div>
+              ))}
+              {!cl.bloquejada && cl.alumnes.length === 0 && (
+                <div style={{ padding: "10px 14px", fontSize: 12, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: mobile ? "0 0 80px" : "0 0 80px" }}>
+      {/* Week header */}
+      <div style={{ background: C.oliveDark, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={() => setSetmanaOffset(s => s - 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.white }}>
+            {setmana[0].getDate()} {mesos[setmana[0].getMonth()]} – {setmana[4].getDate()} {mesos[setmana[4].getMonth()]}
+          </div>
+          {setmanaOffset === 0 && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>Aquesta setmana</div>}
+          {setmanaOffset !== 0 && <button onClick={() => setSetmanaOffset(0)} style={{ fontSize: 10, color: C.terra, background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Tornar a avui</button>}
+        </div>
+        <button onClick={() => setSetmanaOffset(s => s + 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "48px repeat(5, 1fr)", minWidth: mobile ? 420 : "100%" }}>
+            {/* Header dies */}
+            <div style={{ background: C.oliveXpale, borderBottom: `0.5px solid ${C.border}` }} />
+            {setmana.map((d, i) => {
+              const isAvui = d.toDateString() === avui.toDateString();
+              return (
+                <button key={i} onClick={() => setDiaSeleccionat(i)}
+                  style={{ background: isAvui ? C.oliveDark : C.oliveXpale, borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}`, padding: "8px 4px", textAlign: "center", cursor: "pointer", border: "none", borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1px", color: isAvui ? "rgba(255,255,255,0.6)" : C.soft, fontFamily: "'DM Sans', sans-serif" }}>{dies[i]}</div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: isAvui ? C.white : C.oliveDark, marginTop: 1 }}>{d.getDate()}</div>
+                </button>
+              );
+            })}
+
+            {/* Time slots */}
+            {Array.from({ length: 14 }, (_, rowIdx) => {
+              const hora = rowIdx + 7; // 7am to 8pm
+              const horaStr = `${hora.toString().padStart(2,"0")}:00`;
+              return [
+                <div key={`time-${hora}`} style={{ background: C.oliveXpale, borderBottom: `0.5px solid ${C.border}`, padding: "4px 6px", display: "flex", alignItems: "flex-start", justifyContent: "flex-end" }}>
+                  <span style={{ fontSize: 9, color: C.soft, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{horaStr}</span>
+                </div>,
+                ...setmana.map((dataObj, diaIdx) => {
+                  const diaNum = diaIdx + 1;
+                  const dataStr = dataObj.toISOString().split("T")[0];
+                  const classesCela = franges.filter(f => {
+                    if (f.dia_setmana !== diaNum) return false;
+                    const h = parseInt(f.hora_inici?.slice(0,2) || "0");
+                    return h === hora;
+                  });
+                  return (
+                    <div key={`cel-${diaIdx}-${hora}`} style={{ borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}`, minHeight: 44, position: "relative", background: C.white, cursor: classesCela.length > 0 ? "pointer" : "default" }}
+                      onClick={() => classesCela.length > 0 && setDiaSeleccionat(diaIdx)}>
+                      {classesCela.map(cl => {
+                        const alumnesCl = horaris.filter(h => h.franja_id === cl.id);
+                        const bloq = bloquejos.some(b => b.franja_id === cl.id && b.data === dataStr);
+                        const color = bloq ? "#a03030" : (profeColors[cl.professores?.nom || "?"] || C.oliveDark);
+                        const durada = cl.hora_fi ? parseInt(cl.hora_fi.slice(0,2)) - parseInt(cl.hora_inici?.slice(0,2) || "0") : 1;
+                        return (
+                          <div key={cl.id} style={{ position: "absolute", top: 2, left: 2, right: 2, background: color, borderRadius: 6, padding: "3px 5px", overflow: "hidden", minHeight: 38 * durada - 6 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, color: C.white, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {cl.hora_inici?.slice(0,5)} {cl.serveis?.nom?.replace("Pilates ", "").slice(0,3) || ""}
+                            </div>
+                            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
+                              {bloq ? "Bloq." : `${alumnesCl.length}/${cl.tipus_classe === "individual" ? 1 : 3}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })
+              ];
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Llegenda professores */}
+      <div style={{ padding: "12px 16px", display: "flex", gap: 8, flexWrap: "wrap", borderTop: `0.5px solid ${C.border}`, marginTop: 4 }}>
+        {Object.entries(profeColors).map(([nom, color]) => (
+          <div key={nom} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: C.soft, fontFamily: "'DM Sans', sans-serif" }}>{nom}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function VistaFranges({ mobile }) {
   const [franges, setFranges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1334,6 +1545,7 @@ function PanelRosario() {
             <>
               {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile />}
               {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile />}
+              {active === "calendari" && <VistaCalendari mobile />}
               {active === "franges" && <VistaFranges mobile />}
               {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile />}
               {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile />}
@@ -1356,6 +1568,7 @@ function PanelRosario() {
               <>
                 {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile={false} />}
                 {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
+                {active === "calendari" && <VistaCalendari mobile={false} />}
                 {active === "franges" && <VistaFranges mobile={false} />}
                 {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile={false} />}
                 {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile={false} />}
