@@ -16,6 +16,47 @@ function whatsappLink(telefon, missatge) {
   return `https://wa.me/${tel}?text=${encodeURIComponent(missatge)}`;
 }
 
+
+// ── SVG ICONS ─────────────────────────────────────────────
+const IconHome = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+    <path d="M9 21V12h6v9"/>
+  </svg>
+);
+const IconUsers = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <path d="M21 21v-2a4 4 0 0 0-3-3.85"/>
+  </svg>
+);
+const IconClock = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 3"/>
+  </svg>
+);
+const IconSettings = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+const IconCalendar = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <path d="M16 2v4M8 2v4M3 10h18"/>
+  </svg>
+);
+const IconBell = ({ color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
+
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -524,18 +565,22 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
         )}
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 100, display: "flex" }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.oliveDark, borderTop: "0.5px solid rgba(255,255,255,0.08)", height: 60, zIndex: 100, display: "flex" }}>
         {[
-          { key: "inici", label: "Inici", icon: "🏠" },
-          { key: "calendari", label: "Places", icon: "📅", count: pendentsRecup.length },
-          { key: "historial", label: "Historial", icon: "📋" }
-        ].map(item => (
-          <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 500, color: tab === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
-            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
-          </button>
-        ))}
+          { key: "inici", label: "Inici", Icon: IconHome },
+          { key: "calendari", label: "Places", Icon: IconCalendar, count: pendentsRecup.length },
+          { key: "historial", label: "Historial", Icon: IconClock }
+        ].map(item => {
+          const isActive = tab === item.key;
+          const color = isActive ? "#faf8f4" : "rgba(250,248,244,0.35)";
+          return (
+            <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
+              <item.Icon color={color} />
+              <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {modalCancelar && (
@@ -636,20 +681,24 @@ function Sidebar({ active, setActive, counts }) {
 
 function BottomNav({ active, setActive, counts }) {
   const items = [
-    { key: "avui", label: "Avui", icon: "🏠" },
-    { key: "alumnes", label: "Alumnes", icon: "👥" },
-    { key: "espera", label: "Espera", icon: "⏳", count: counts.espera },
-    { key: "recuperacions", label: "Gestio", icon: "↺", count: counts.recuperacions + counts.canvis },
+    { key: "avui", label: "Avui", Icon: IconHome },
+    { key: "alumnes", label: "Alumnes", Icon: IconUsers },
+    { key: "espera", label: "Espera", Icon: IconClock, count: counts.espera },
+    { key: "recuperacions", label: "Gestio", Icon: IconSettings, count: counts.recuperacions + counts.canvis },
   ];
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 200, display: "flex", paddingBottom: "env(safe-area-inset-bottom)" }}>
-      {items.map(item => (
-        <button key={item.key} onClick={() => setActive(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
-          <span style={{ fontSize: 20 }}>{item.icon}</span>
-          <span style={{ fontSize: 9, fontWeight: 500, color: active === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
-          {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
-        </button>
-      ))}
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.oliveDark, borderTop: "0.5px solid rgba(255,255,255,0.08)", height: 60, zIndex: 200, display: "flex", paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {items.map(item => {
+        const isActive = active === item.key;
+        const color = isActive ? "#faf8f4" : "rgba(250,248,244,0.35)";
+        return (
+          <button key={item.key} onClick={() => setActive(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
+            <item.Icon color={color} />
+            <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20, minWidth: 16, textAlign: "center" }}>{item.count}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1599,17 +1648,21 @@ function PanelProfessora({ professora, onLogout }) {
         )}
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: `0.5px solid ${C.border}`, height: 60, zIndex: 200, display: "flex" }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.oliveDark, borderTop: "0.5px solid rgba(255,255,255,0.08)", height: 60, zIndex: 200, display: "flex" }}>
         {[
-          { key: "setmana", label: "Setmana", icon: "📅" },
-          { key: "notificacions", label: "Avisos", icon: "🔔", count: notificacions.length },
-        ].map(item => (
-          <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, cursor: "pointer", border: "none", background: "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 500, color: tab === item.key ? C.oliveDark : C.soft }}>{item.label}</span>
-            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 500, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
-          </button>
-        ))}
+          { key: "setmana", label: "Setmana", Icon: IconCalendar },
+          { key: "notificacions", label: "Avisos", Icon: IconBell, count: notificacions.length },
+        ].map(item => {
+          const isActive = tab === item.key;
+          const color = isActive ? "#faf8f4" : "rgba(250,248,244,0.35)";
+          return (
+            <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
+              <item.Icon color={color} />
+              <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
