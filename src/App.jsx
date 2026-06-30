@@ -1091,12 +1091,12 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   async function aprovar(tabla, id) {
     await supabase.from(tabla).update({ estat: "aprovada" }).eq("id", id);
     setAprovats(prev => ({ ...prev, [id]: "aprovada" }));
-    onRefresh();
+    setTimeout(() => onRefresh(), 300);
   }
   async function rebutjar(tabla, id) {
     await supabase.from(tabla).update({ estat: "rebutjada" }).eq("id", id);
     setAprovats(prev => ({ ...prev, [id]: "rebutjada" }));
-    onRefresh();
+    setTimeout(() => onRefresh(), 300);
   }
   function tancar(id) {
     setAprovats(prev => {
@@ -1249,7 +1249,7 @@ function PanelRosario() {
       supabase.from("alumnes").select("*").order("created_at", { ascending: false }),
       supabase.from("llista_espera").select("*").order("ordre", { ascending: true }),
       supabase.from("recuperacions").select("*, alumnes(nom, cognom, telefon)").order("created_at", { ascending: false }),
-      supabase.from("canvis_horari").select("*, alumnes(nom, cognom, telefon), franges(dia_setmana, hora_inici, hora_fi)").order("created_at", { ascending: false }),
+      supabase.from("canvis_horari").select("*, alumnes(nom, cognom, telefon), franges:franja_sollicitada_id(dia_setmana, hora_inici, hora_fi)").order("created_at", { ascending: false }),
     ]);
     if (a.data) setAlumnes(a.data);
     if (e.data) setEspera(e.data);
