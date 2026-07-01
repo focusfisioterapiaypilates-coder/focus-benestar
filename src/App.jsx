@@ -1293,22 +1293,61 @@ function VistaCalendari({ mobile }) {
 
 function VistaFranges({ mobile }) {
   const [franges, setFranges] = useState([]);
+  const [professores, setProfessores] = useState([]);
+  const [serveis, setServeis] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editant, setEditant] = useState(null); // franja id being edited
+  const [showNova, setShowNova] = useState(false);
+  const [novaForm, setNovaForm] = useState({ dia_setmana: 1, hora_inici: "09:00", hora_fi: "09:55", professora_id: "", servei_id: "", tipus_classe: "grupal" });
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
 
-  useEffect(() => { fetchFranges(); }, []);
+  useEffect(() => { fetchDades(); }, []);
 
-  async function fetchFranges() {
+  async function fetchDades() {
     setLoading(true);
-    const { data } = await supabase.from("franges").select("*, professores(nom)").eq("activa", true).order("dia_setmana").order("hora_inici");
-    if (data) setFranges(data);
+    const [fr, pr, sv] = await Promise.all([
+      supabase.from("franges").select("*, professores(id, nom), serveis(id, nom)").eq("activa", true).order("dia_setmana").order("hora_inici"),
+      supabase.from("professores").select("id, nom").eq("activa", true),
+      supabase.from("serveis").select("id, nom").eq("actiu", true),
+    ]);
+    if (fr.data) setFranges(fr.data);
+    if (pr.data) { setProfessores(pr.data); if (pr.data.length > 0) setNovaForm(prev => ({ ...prev, professora_id: pr.data[0].id })); }
+    if (sv.data) { setServeis(sv.data); if (sv.data.length > 0) setNovaForm(prev => ({ ...prev, servei_id: sv.data[0].id })); }
     setLoading(false);
   }
 
   async function toggleTipus(f) {
     const nouTipus = f.tipus_classe === "individual" ? "grupal" : "individual";
     await supabase.from("franges").update({ tipus_classe: nouTipus }).eq("id", f.id);
-    fetchFranges();
+    fetchDades();
+  }
+
+  async function updateProfe(franjaId, professoraId) {
+    await supabase.from("franges").update({ professora_id: professoraId || null }).eq("id", franjaId);
+    setEditant(null);
+    fetchDades();
+  }
+
+  async function desactivarFranja(f) {
+    if (!window.confirm(`Segur que vols eliminar la franja del ${dies[f.dia_setmana]} a les ${f.hora_inici?.slice(0,5)}?`)) return;
+    await supabase.from("franges").update({ activa: false }).eq("id", f.id);
+    fetchDades();
+  }
+
+  async function crearFranja() {
+    if (!novaForm.hora_inici || !novaForm.hora_fi) return alert("Omple tots els camps");
+    const { error } = await supabase.from("franges").insert([{
+      dia_setmana: parseInt(novaForm.dia_setmana),
+      hora_inici: novaForm.hora_inici,
+      hora_fi: novaForm.hora_fi,
+      professora_id: novaForm.professora_id || null,
+      servei_id: novaForm.servei_id || null,
+      tipus_classe: novaForm.tipus_classe,
+      activa: true,
+    }]);
+    if (error) return alert("Error: " + error.message);
+    setShowNova(false);
+    fetchDades();
   }
 
   const grouped = {};
@@ -1317,10 +1356,64 @@ function VistaFranges({ mobile }) {
     grouped[f.dia_setmana].push(f);
   });
 
+  const selectStyle = { padding: "6px 8px", borderRadius: 7, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", cursor: "pointer" };
+
   return (
     <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>Franges horaries</div>
-      <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Marca cada classe com a Grupal (3 places) o Individual (1 plaça)</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark }}>Franges horaries</div>
+        <button style={btn("primary")} onClick={() => setShowNova(true)}>+ Nova franja</button>
+      </div>
+      <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Gestiona les franges horaries del centre</div>
+
+      {showNova && (
+        <Modal title="Nova franja horaria" sub="Afegeix una nova classe al calendari" onClose={() => setShowNova(false)}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Dia de la setmana</div>
+            <select value={novaForm.dia_setmana} onChange={e => setNovaForm({...novaForm, dia_setmana: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
+              {dies.slice(1).map((d, i) => <option key={i+1} value={i+1}>{d}</option>)}
+            </select>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora inici</div>
+              <input type="time" value={novaForm.hora_inici} onChange={e => setNovaForm({...novaForm, hora_inici: e.target.value})} style={{ ...selectStyle, width: "100%", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora fi</div>
+              <input type="time" value={novaForm.hora_fi} onChange={e => setNovaForm({...novaForm, hora_fi: e.target.value})} style={{ ...selectStyle, width: "100%", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Professora</div>
+            <select value={novaForm.professora_id} onChange={e => setNovaForm({...novaForm, professora_id: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
+              <option value="">Sense professora</option>
+              {professores.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Servei</div>
+            <select value={novaForm.servei_id} onChange={e => setNovaForm({...novaForm, servei_id: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
+              {serveis.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Tipus</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["grupal", "individual"].map(t => (
+                <button key={t} onClick={() => setNovaForm({...novaForm, tipus_classe: t})} style={{ flex: 1, padding: "8px", borderRadius: 9, border: `1.5px solid ${novaForm.tipus_classe === t ? C.olive : C.border}`, background: novaForm.tipus_classe === t ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: novaForm.tipus_classe === t ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                  {t === "grupal" ? "Grupal (3 llocs)" : "Individual (1 lloc)"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setShowNova(false)}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={crearFranja}>Crear franja</button>
+          </div>
+        </Modal>
+      )}
+
       {loading ? (
         <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
       ) : (
@@ -1329,14 +1422,30 @@ function VistaFranges({ mobile }) {
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.oliveDark, marginBottom: 8 }}>{dies[dia]}</div>
             <div style={card}>
               {grouped[dia].map((f, i, arr) => (
-                <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
-                    <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{f.professores?.nom || "Sense professora"}</div>
+                <div key={f.id} style={{ padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                      {editant === f.id ? (
+                        <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
+                          <select defaultValue={f.professora_id || ""} onChange={e => updateProfe(f.id, e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                            <option value="">Sense professora</option>
+                            {professores.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                          </select>
+                          <button style={{ ...btn("secondary"), fontSize: 11, padding: "4px 8px" }} onClick={() => setEditant(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                          {f.professores?.nom || "Sense professora"}
+                          <button onClick={() => setEditant(f.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: C.terra, fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Canviar</button>
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={() => toggleTipus(f)} style={{ padding: "5px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 10, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", background: f.tipus_classe === "individual" ? C.terraPale : C.successPale, color: f.tipus_classe === "individual" ? C.terraDark : C.success, flexShrink: 0 }}>
+                      {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
+                    </button>
+                    <button onClick={() => desactivarFranja(f)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.soft, padding: "0 4px", flexShrink: 0 }} title="Eliminar franja">×</button>
                   </div>
-                  <button onClick={() => toggleTipus(f)} style={{ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", background: f.tipus_classe === "individual" ? C.terraPale : C.successPale, color: f.tipus_classe === "individual" ? C.terraDark : C.success }}>
-                    {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
-                  </button>
                 </div>
               ))}
             </div>
