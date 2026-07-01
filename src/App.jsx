@@ -1831,6 +1831,8 @@ function PanelProfessora({ professora, onLogout }) {
               </>
             )}
 
+            {tab === "calendari" && <VistaCalendari mobile />}
+
             {tab === "notificacions" && (
               <>
                 <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Totes les notificacions</div>
@@ -1863,7 +1865,8 @@ function PanelProfessora({ professora, onLogout }) {
 
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.oliveDark, borderTop: "0.5px solid rgba(255,255,255,0.08)", height: 60, zIndex: 200, display: "flex" }}>
         {[
-          { key: "setmana", label: "Setmana", Icon: IconCalendar },
+          { key: "setmana", label: "Setmana", Icon: IconHome },
+          { key: "calendari", label: "Calendari", Icon: IconCalendar },
           { key: "notificacions", label: "Avisos", Icon: IconBell, count: notificacions.length },
         ].map(item => {
           const isActive = tab === item.key;
