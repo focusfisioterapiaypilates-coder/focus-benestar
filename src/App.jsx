@@ -405,6 +405,15 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       }
       if (classeId) {
         await supabase.from("assistencies").insert([{ classe_id: classeId, alumna_id: alumna.id, estat: "recuperacio" }]);
+        // Notificacio a Focus del centre
+        const missatge = `${alumna.nom} ${alumna.cognom} s'ha apuntat a una recuperacio el ${formatDataCurta(slot.dataObj)} a les ${slot.hora}`;
+        await supabase.from("notificacions").insert([{
+          alumna_id: alumna.id,
+          tipus: "recuperacio",
+          canal: "app",
+          missatge,
+          estat: "pendent"
+        }]);
       }
       setModalSlot(null);
       fetchDades();
@@ -476,7 +485,11 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Encara no tens horari assignat. Contacta amb Focus Benestar.</div>
                   </div>
                 ) : (
-                  horaris.map(h => {
+                  [...horaris].sort((a, b) => {
+                    const dA = a.franges ? getNextDate(a.franges.dia_setmana, a.franges.hora_inici) : new Date(9999,0,1);
+                    const dB = b.franges ? getNextDate(b.franges.dia_setmana, b.franges.hora_inici) : new Date(9999,0,1);
+                    return dA - dB;
+                  }).map(h => {
                     const franja = h.franges;
                     const servei = franja?.serveis;
                     const nextDate = franja ? getNextDate(franja.dia_setmana, franja.hora_inici) : null;
@@ -1890,13 +1903,12 @@ function PanelProfessora({ professora, onLogout }) {
         .eq("actiu", true)
         .eq("tipus", "fix");
 
-      // Get assistencies (cancelations this week)
-      const { data: assistenciesData } = await supabase.from("assistencies")
-        .select("*, alumnes(nom, cognom), classes(data, franja_id, franges(hora_inici, serveis(nom)))")
-        .in("classes.franja_id", franjaIds)
-        .eq("estat", "cancelada")
-        .gte("classes.data", inicStr)
-        .lte("classes.data", fiStr);
+      // Get assistencies (cancelations + recuperacions this week)
+      const { data: classesSetmana } = await supabase.from("classes")
+        .select("id, franja_id, data, assistencies(estat, alumna_id, alumnes(nom, cognom))")
+        .in("franja_id", franjaIds)
+        .gte("data", inicStr)
+        .lte("data", fiStr);
 
       // Build weekly schedule
       const setmana = [];
@@ -1910,11 +1922,18 @@ function PanelProfessora({ professora, onLogout }) {
             dia, dataObj, dataStr,
             franges: [...frangesDia]
               .sort((a, b) => (a.hora_inici || "").localeCompare(b.hora_inici || ""))
-              .map(f => ({
-              ...f,
-              alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
-              cancelades: (assistenciesData || []).filter(a => a.classes?.franja_id === f.id && a.classes?.data === dataStr),
-            }))
+              .map(f => {
+                const classesDia = (classesSetmana || []).filter(c => c.franja_id === f.id && c.data === dataStr);
+                const totes_ass = classesDia.flatMap(c => c.assistencies || []);
+                const cancelades = totes_ass.filter(a => a.estat === "cancelada");
+                const recuperacions = totes_ass.filter(a => a.estat === "recuperacio");
+                return {
+                  ...f,
+                  alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
+                  cancelades,
+                  recuperacions,
+                };
+              })
           });
         }
       }
@@ -2031,15 +2050,16 @@ function PanelProfessora({ professora, onLogout }) {
                               <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
                             </div>
                             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                              <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length} alumnes</div>
+                              <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length + (f.recuperacions?.length || 0)} alumnes</div>
                               {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
+                              {(f.recuperacions?.length || 0) > 0 && <div style={{ fontSize: 11, color: C.success }}>{f.recuperacions.length} recuperació{f.recuperacions.length > 1 ? "ns" : ""}</div>}
                               <button style={{ ...btn("danger"), fontSize: 10, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, dia.dataStr)}>Bloquejar</button>
                             </div>
                           </div>
                           {f.alumnes.map((h, i) => {
                             const cancelada = f.cancelades.some(c => c.alumna_id === h.alumna_id);
                             return (
-                              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: i < f.alumnes.length - 1 ? `0.5px solid ${C.border}` : "none", opacity: cancelada ? 0.4 : 1 }}>
+                              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, opacity: cancelada ? 0.4 : 1 }}>
                                 <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
                                   {h.alumnes?.nom?.[0] || "?"}
                                 </div>
@@ -2050,7 +2070,18 @@ function PanelProfessora({ professora, onLogout }) {
                               </div>
                             );
                           })}
-                          {f.alumnes.length === 0 && (
+                          {(f.recuperacions || []).map((r, i) => (
+                            <div key={`recup-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, background: C.successPale }}>
+                              <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.successPale, border: `1.5px solid ${C.success}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.success, flexShrink: 0 }}>
+                                {r.alumnes?.nom?.[0] || "↺"}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: C.success }}>{r.alumnes?.nom} {r.alumnes?.cognom}</div>
+                                <div style={{ fontSize: 11, color: C.success }}>Recuperació</div>
+                              </div>
+                            </div>
+                          ))}
+                          {f.alumnes.length === 0 && (f.recuperacions?.length || 0) === 0 && (
                             <div style={{ padding: "12px 16px", fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
                           )}
                         </div>
