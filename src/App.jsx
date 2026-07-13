@@ -292,7 +292,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       // ALL horaris fixos (to count real occupancy per franja)
       supabase.from("horaris_alumnes").select("franja_id, actiu, tipus, data_classe").eq("actiu", true),
       // All assistencies for next 30 days (cancelations + recuperacions)
-      supabase.from("assistencies").select("estat, classes(franja_id, data)").gte("classes.data", avuiStr).lte("classes.data", limitStr),
+      supabase.from("classes").select("franja_id, data, assistencies(estat, alumna_id)").gte("data", avuiStr).lte("data", limitStr),
     ]);
     if (h.data) setHoraris(h.data);
     if (a.data) setAssistencies(a.data);
@@ -301,10 +301,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     // Build ocupacions flat list from assistencies
     const flat = [];
     if (assistenciesClasses.data) {
-      assistenciesClasses.data.forEach(ass => {
-        if (ass.classes) {
-          flat.push({ franja_id: ass.classes.franja_id, data: ass.classes.data, estat: ass.estat });
-        }
+      assistenciesClasses.data.forEach(classe => {
+        (classe.assistencies || []).forEach(ass => {
+          flat.push({ franja_id: classe.franja_id, data: classe.data, estat: ass.estat });
+        });
       });
     }
     // Store all horaris for occupancy calculation
@@ -326,9 +326,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     if (!modalCancelar) return;
     const h = modalCancelar;
     const franja = h.franges;
-    const nextDate = getNextDate(franja?.dia_setmana, franja?.hora_inici);
-    const nextDateStr = nextDate.toISOString().split("T")[0];
     const horaInici = franja?.hora_inici || "00:00";
+    // Use specific date from 28-day list, or calculate next occurrence
+    const nextDateStr = h._dataEspecifica || getNextDate(franja?.dia_setmana, franja?.hora_inici).toISOString().split("T")[0];
+    const nextDate = new Date(nextDateStr + "T12:00:00");
     const classeDateTime = new Date(nextDateStr + "T" + horaInici);
     const horasDiff = (classeDateTime - new Date()) / (1000 * 60 * 60);
     const tipusCancelacio = horasDiff >= 24 ? "mes_24h" : "menys_24h";
@@ -351,7 +352,13 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     if (tipusCancelacio === "mes_24h") {
       const caducitat = new Date();
       caducitat.setMonth(caducitat.getMonth() + 1);
-      await supabase.from("recuperacions").insert([{ alumna_id: alumna.id, estat: "pendent", data_caducitat: caducitat.toISOString().split("T")[0] }]);
+      // Also store franja_id so we know which type of class to recover
+      await supabase.from("recuperacions").insert([{
+        alumna_id: alumna.id,
+        estat: "pendent",
+        data_caducitat: caducitat.toISOString().split("T")[0],
+        data_proposta_alumna: null,
+      }]);
     }
     setModalCancelar(null);
     setMotiu("");
@@ -385,7 +392,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   }
 
   async function handleApuntarSlot(slot) {
-    const pendentsRecup = recuperacions.filter(r => r.estat === "pendent" && !r.data_proposta_alumna);
+    const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
     if (slotAction === "recuperacio" && pendentsRecup.length > 0) {
       const recup = pendentsRecup[0];
       await supabase.from("recuperacions").update({ data_proposta_alumna: slot.data, estat: "aprovada" }).eq("id", recup.id);
@@ -546,7 +553,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                             </div>
                             {jaCancel
                               ? <span style={tag("cancel")}>Cancel.lada</span>
-                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 10, padding: "4px 10px" }} onClick={() => setModalCancelar(h)}>Cancel.lar</button>
+                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 10, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
                             }
                           </div>
                         );
@@ -695,7 +702,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       </div>
 
       {modalCancelar && (
-        <Modal title="Cancel.lar classe" sub={`Proxima classe: ${modalCancelar.franges ? formatDataCurta(getNextDate(modalCancelar.franges.dia_setmana)) : ""}`} onClose={() => setModalCancelar(null)}>
+        <Modal title="Cancel.lar classe" sub={(() => {
+          const dataStr = modalCancelar._dataEspecifica || (modalCancelar.franges ? getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici).toISOString().split("T")[0] : null);
+          return dataStr ? formatDataCurta(new Date(dataStr + "T12:00:00")) : "";
+        })()} onClose={() => setModalCancelar(null)}>
           <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.warn, lineHeight: 1.6 }}>
             Si cancel.les amb mes de 24h d'antelacio, podras recuperar la classe en els propers 30 dies. Si cancel.les amb menys de 24h, la classe es perd.
           </div>
