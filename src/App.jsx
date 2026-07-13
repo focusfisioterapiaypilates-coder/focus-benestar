@@ -174,11 +174,23 @@ function LoginAlumna({ onLogin }) {
 
 // ── VISTA ALUMNA ──────────────────────────────────────────
 // Helper: get next date for a given weekday (1=Mon...5=Fri)
-function getNextDate(diaSetmana) {
+function getNextDate(diaSetmana, horaInici) {
   const avui = new Date();
   const avuiDia = avui.getDay() === 0 ? 7 : avui.getDay();
   let diff = diaSetmana - avuiDia;
-  if (diff <= 0) diff += 7;
+  // Si es avui, comprova si la classe ja ha passat
+  if (diff === 0) {
+    if (horaInici) {
+      const [h, m] = horaInici.split(":").map(Number);
+      const classeAvui = new Date(avui);
+      classeAvui.setHours(h, m, 0, 0);
+      if (classeAvui > avui) diff = 0; // encara no ha passat, mostrar avui
+      else diff = 7; // ja ha passat, proxima setmana
+    } else {
+      diff = 7;
+    }
+  }
+  if (diff < 0) diff += 7;
   const next = new Date(avui);
   next.setDate(avui.getDate() + diff);
   return next;
@@ -314,7 +326,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     if (!modalCancelar) return;
     const h = modalCancelar;
     const franja = h.franges;
-    const nextDate = getNextDate(franja?.dia_setmana);
+    const nextDate = getNextDate(franja?.dia_setmana, franja?.hora_inici);
     const nextDateStr = nextDate.toISOString().split("T")[0];
     const horaInici = franja?.hora_inici || "00:00";
     const classeDateTime = new Date(nextDateStr + "T" + horaInici);
@@ -355,15 +367,14 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
         missatge,
         estat: "pendent"
       }]);
-      if (franjaObj.professores?.telefon) {
-        setConfirmacioCancel({
-          profeNom: franjaObj.professores.nom,
-          missatgeWA: missatge,
-          telefon: franjaObj.professores.telefon,
-          tipusCancelacio,
-        });
-        return;
-      }
+      // Sempre avisa al numero de Focus, no a la profe personalment
+      setConfirmacioCancel({
+        profeNom: "Focus",
+        missatgeWA: missatge,
+        telefon: "376652691",
+        tipusCancelacio,
+      });
+      return;
     }
 
     if (tipusCancelacio === "mes_24h") {
@@ -401,6 +412,17 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
   const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
   const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || [], window._bloquejos || []);
+  
+  // Calendar picker state for recuperacio
+  const [calDiaSeleccionat, setCalDiaSeleccionat] = useState(null);
+  
+  // Group slots by date for calendar view
+  const slotsByDate = {};
+  slots.forEach(s => {
+    if (!slotsByDate[s.data]) slotsByDate[s.data] = [];
+    slotsByDate[s.data].push(s);
+  });
+  const datasDisponibles = Object.keys(slotsByDate).sort();
 
   return (
     <div style={{ minHeight: "100vh", background: C.oliveXpale, width: "100%" }}>
@@ -450,7 +472,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   horaris.map(h => {
                     const franja = h.franges;
                     const servei = franja?.serveis;
-                    const nextDate = franja ? getNextDate(franja.dia_setmana) : null;
+                    const nextDate = franja ? getNextDate(franja.dia_setmana, franja.hora_inici) : null;
                     const esPuntual = h.tipus === "puntual";
                     const dataText = esPuntual && h.data_classe
                       ? formatDataCurta(new Date(h.data_classe + "T12:00:00"))
@@ -482,6 +504,57 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   })
                 )}
 
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Propers 28 dies</div>
+                {(() => {
+                  const avui = new Date(); avui.setHours(0,0,0,0);
+                  const mesos = ["gener","febrer","marc","abril","maig","juny","juliol","agost","setembre","octubre","novembre","desembre"];
+                  const diesNom = ["","Dilluns","Dimarts","Dimecres","Dijous","Divendres"];
+                  // Generate next 28 days of classes from horaris fixos
+                  const properes = [];
+                  for (let i = 0; i <= 28; i++) {
+                    const d = new Date(avui); d.setDate(avui.getDate() + i);
+                    const diaNum = d.getDay() === 0 ? 7 : d.getDay();
+                    if (diaNum > 5) continue;
+                    const dateStr = d.toISOString().split("T")[0];
+                    horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus)).forEach(h => {
+                      const jaCancel = assistencies.some(a => a.classes?.franja_id === h.franja_id && a.classes?.data === dateStr && a.estat === "cancelada");
+                      properes.push({ h, d: new Date(d), dateStr, jaCancel });
+                    });
+                    horaris.filter(h => h.tipus === "puntual" && h.data_classe === dateStr).forEach(h => {
+                      properes.push({ h, d: new Date(d), dateStr, jaCancel: false, puntual: true });
+                    });
+                  }
+                  if (properes.length === 0) return <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense classes programades</div>;
+                  return (
+                    <div style={card}>
+                      {properes.map(({ h, d, dateStr, jaCancel, puntual }, i, arr) => {
+                        const franja = h.franges;
+                        const isAvui = d.toDateString() === avui.toDateString();
+                        return (
+                          <div key={`${h.id}-${dateStr}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", background: isAvui ? C.oliveXpale : "transparent", opacity: jaCancel ? 0.5 : 1 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 8, background: jaCancel ? C.dangerPale : (isAvui ? C.oliveDark : C.olivePale), display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: jaCancel ? C.danger : (isAvui ? C.white : C.oliveDark), lineHeight: 1 }}>{d.getDate()}</div>
+                              <div style={{ fontSize: 8, color: jaCancel ? C.danger : (isAvui ? "rgba(255,255,255,0.6)" : C.soft), textTransform: "uppercase" }}>{mesos[d.getMonth()].slice(0,3)}</div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: jaCancel ? "line-through" : "none" }}>
+                                {franja?.serveis?.nom || "Classe"} {puntual && <span style={{ fontSize: 10, color: C.terra }}>· Puntual</span>}
+                              </div>
+                              <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                                {isAvui ? "Avui" : diesNom[d.getDay() === 0 ? 7 : d.getDay()]} · {franja?.hora_inici?.slice(0,5) || ""}
+                              </div>
+                            </div>
+                            {jaCancel
+                              ? <span style={tag("cancel")}>Cancel.lada</span>
+                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 10, padding: "4px 10px" }} onClick={() => setModalCancelar(h)}>Cancel.lar</button>
+                            }
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Ultimes classes</div>
                 <div style={card}>
                   {assistencies.slice(0, 5).map((a, i, arr) => (
@@ -502,38 +575,76 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
             {tab === "calendari" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 6 }}>Places lliures — propers 30 dies</div>
-                <div style={{ fontSize: 12, color: C.mid, fontWeight: 300, marginBottom: 16, lineHeight: 1.5 }}>
-                  {pendentsRecup.length > 0
-                    ? "Tens una recuperacio pendent. Toca qualsevol classe per apuntar-te directament."
-                    : "Toca qualsevol classe per sol.licitar un canvi d'horari fix a Rosario."}
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 6 }}>
+                  {calDiaSeleccionat ? "Hores disponibles" : "Places lliures — propers 30 dies"}
                 </div>
-                {slots.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.mid, fontWeight: 300, marginBottom: 16, lineHeight: 1.5 }}>
+                  {calDiaSeleccionat
+                    ? "Toca una hora per apuntar-te"
+                    : pendentsRecup.length > 0
+                      ? "Toca un dia per recuperar la teva classe."
+                      : "Toca un dia per sol.licitar un canvi d'horari a Rosario."}
+                </div>
+
+                {calDiaSeleccionat ? (
+                  <>
+                    <button onClick={() => setCalDiaSeleccionat(null)} style={{ ...btn("secondary"), marginBottom: 12, fontSize: 12 }}>← Tornar al calendari</button>
+                    {(slotsByDate[calDiaSeleccionat] || []).length === 0 ? (
+                      <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures aquest dia</div>
+                      </div>
+                    ) : (
+                      <div style={card}>
+                        {(slotsByDate[calDiaSeleccionat] || []).map((slot, i, arr) => (
+                          <div key={`${slot.franja_id}-${slot.data}`}
+                            onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : "canvi"); setCalDiaSeleccionat(null); }}
+                            style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer" }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 10, background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: C.white, lineHeight: 1 }}>{slot.hora}</div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{slot.servei}</div>
+                              <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{slot.hora} – {slot.hora_fi}</div>
+                            </div>
+                            <span style={{ ...tag("ok"), fontSize: 11 }}>{slot.lliures} {slot.lliures === 1 ? "lloc" : "llocs"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : datasDisponibles.length === 0 ? (
                   <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
                     <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures els propers 30 dies</div>
                   </div>
                 ) : (
-                  <div style={card}>
-                    {slots.map((slot, i, arr) => (
-                      <div key={`${slot.franja_id}-${slot.data}`} onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : "canvi"); }}
-                        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer", transition: "background .15s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = C.oliveXpale}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.olivePale, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.oliveDark, lineHeight: 1 }}>{new Date(slot.dataObj).getDate()}</div>
-                          <div style={{ fontSize: 9, color: C.soft, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                            {["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"][slot.dataObj.getMonth() + 1]}
-                          </div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{slot.servei}</div>
-                          <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{formatDataCurta(slot.dataObj)} · {slot.hora} – {slot.hora_fi}</div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <span style={{ ...tag("ok"), fontSize: 11 }}>{slot.lliures} {slot.lliures === 1 ? "lloc" : "llocs"}</span>
-                        </div>
-                      </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 16 }}>
+                    {["Dl","Dm","Dc","Dj","Dv","Ds","Dg"].map(d => (
+                      <div key={d} style={{ textAlign: "center", fontSize: 9, color: C.soft, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", paddingBottom: 4 }}>{d}</div>
                     ))}
+                    {(() => {
+                      const avui = new Date(); avui.setHours(0,0,0,0);
+                      const limit = new Date(avui); limit.setDate(avui.getDate() + 30);
+                      const primerDia = new Date(avui);
+                      const diesBuides = primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
+                      const cells = [];
+                      for (let i = 0; i < diesBuides; i++) cells.push(<div key={`b${i}`} />);
+                      for (let d = new Date(avui); d <= limit; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().split("T")[0];
+                        const teSlots = !!slotsByDate[dateStr];
+                        const isAvui = d.toDateString() === avui.toDateString();
+                        const dCopy = new Date(d);
+                        cells.push(
+                          <div key={dateStr} onClick={() => teSlots && setCalDiaSeleccionat(dateStr)}
+                            style={{ aspectRatio: "1", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: teSlots ? "pointer" : "default", background: isAvui ? C.oliveDark : teSlots ? C.olivePale : "transparent", border: teSlots && !isAvui ? `0.5px solid ${C.border}` : "none", position: "relative" }}>
+                            <span style={{ fontSize: 13, fontWeight: isAvui || teSlots ? 600 : 400, color: isAvui ? C.white : teSlots ? C.oliveDark : C.soft }}>
+                              {dCopy.getDate()}
+                            </span>
+                            {teSlots && <div style={{ width: 4, height: 4, borderRadius: "50%", background: isAvui ? C.terra : C.terra, position: "absolute", bottom: 3 }} />}
+                          </div>
+                        );
+                      }
+                      return cells;
+                    })()}
                   </div>
                 )}
               </>
