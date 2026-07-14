@@ -218,7 +218,7 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
     franges.forEach(f => {
       if (f.dia_setmana !== diaSemana) return;
       // Skip blocked dates
-      if (bloquejos.some(b => b.franja_id === f.id && b.data === dateStr)) return;
+      if (bloquejos && bloquejos.some(b => b.franja_id === f.id && b.data === dateStr)) return;
       const max = f.tipus_classe === "individual" ? 1 : 3;
 
       // Count fixed horaris for this franja (always occupy a spot)
@@ -246,7 +246,7 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
 
       if (lliures > 0) {
         slots.push({
-          franja_id: f.id, franja: f, data: dateStr, dataObj: new Date(d),
+          franja_id: f.id, franja: f, data: dateStr, dataObj: new Date(dateStr + "T12:00:00"),
           lliures, max, ocupades, servei: f.serveis?.nom || "",
           hora: f.hora_inici?.slice(0,5) || "", hora_fi: f.hora_fi?.slice(0,5) || "",
         });
@@ -406,7 +406,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       if (classeId) {
         await supabase.from("assistencies").insert([{ classe_id: classeId, alumna_id: alumna.id, estat: "recuperacio" }]);
         // Notificacio a Focus del centre
-        const missatge = `${alumna.nom} ${alumna.cognom} s'ha apuntat a una recuperacio el ${formatDataCurta(slot.dataObj)} a les ${slot.hora}`;
+        const missatge = `${alumna.nom} ${alumna.cognom} s'ha apuntat a una recuperacio el ${formatDataCurta(new Date(slot.data + "T12:00:00"))} a les ${slot.hora}`;
         await supabase.from("notificacions").insert([{
           alumna_id: alumna.id,
           tipus: "recuperacio",
@@ -524,15 +524,21 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   })
                 )}
 
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Propers 28 dies</div>
+                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Properes setmanes</div>
                 {(() => {
                   const avui = new Date(); avui.setHours(0,0,0,0);
+                  // Find end of current week (Sunday)
+                  const diaSemActual = avui.getDay() === 0 ? 7 : avui.getDay();
+                  const fiSetmanaActual = new Date(avui);
+                  fiSetmanaActual.setDate(avui.getDate() + (7 - diaSemActual));
                   const mesos = ["gener","febrer","marc","abril","maig","juny","juliol","agost","setembre","octubre","novembre","desembre"];
                   const diesNom = ["","Dilluns","Dimarts","Dimecres","Dijous","Divendres"];
                   // Generate next 28 days of classes from horaris fixos
                   const properes = [];
-                  for (let i = 0; i <= 28; i++) {
+                  for (let i = 0; i <= 35; i++) {
                     const d = new Date(avui); d.setDate(avui.getDate() + i);
+                    // Skip current week - already shown in tarjeta grande
+                    if (d <= fiSetmanaActual) continue;
                     const diaNum = d.getDay() === 0 ? 7 : d.getDay();
                     if (diaNum > 5) continue;
                     const dateStr = d.toISOString().split("T")[0];
@@ -550,8 +556,13 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       {properes.map(({ h, d, dateStr, jaCancel, puntual }, i, arr) => {
                         const franja = h.franges;
                         const isAvui = d.toDateString() === avui.toDateString();
+                        const esRecuperacio = assistencies.some(a =>
+                          a.classes?.franja_id === h.franja_id &&
+                          a.classes?.data === dateStr &&
+                          a.estat === "recuperacio"
+                        );
                         return (
-                          <div key={`${h.id}-${dateStr}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", background: isAvui ? C.oliveXpale : "transparent", opacity: jaCancel ? 0.5 : 1 }}>
+                          <div key={`${h.id}-${dateStr}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", background: esRecuperacio ? C.terraPale : (isAvui ? C.oliveXpale : "transparent"), opacity: jaCancel ? 0.5 : 1 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 8, background: jaCancel ? C.dangerPale : (isAvui ? C.oliveDark : C.olivePale), display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               <div style={{ fontSize: 14, fontWeight: 700, color: jaCancel ? C.danger : (isAvui ? C.white : C.oliveDark), lineHeight: 1 }}>{d.getDate()}</div>
                               <div style={{ fontSize: 8, color: jaCancel ? C.danger : (isAvui ? "rgba(255,255,255,0.6)" : C.soft), textTransform: "uppercase" }}>{mesos[d.getMonth()].slice(0,3)}</div>
@@ -566,6 +577,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                             </div>
                             {jaCancel
                               ? <span style={tag("cancel")}>Cancel.lada</span>
+                              : esRecuperacio
+                              ? <span style={tag("warn")}>Recuperació</span>
                               : !puntual && <button style={{ ...btn("secondary"), fontSize: 10, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
                             }
                           </div>
@@ -1909,6 +1922,13 @@ function PanelProfessora({ professora, onLogout }) {
         .in("franja_id", franjaIds)
         .gte("data", inicStr)
         .lte("data", fiStr);
+      
+      // Also get recuperacions directly (in case classe doesnt exist yet for that slot)
+      const { data: recuperacionsSetmana } = await supabase.from("recuperacions")
+        .select("*, alumnes(nom, cognom)")
+        .eq("estat", "aprovada")
+        .gte("data_proposta_alumna", inicStr)
+        .lte("data_proposta_alumna", fiStr);
 
       // Build weekly schedule
       const setmana = [];
@@ -1926,7 +1946,14 @@ function PanelProfessora({ professora, onLogout }) {
                 const classesDia = (classesSetmana || []).filter(c => c.franja_id === f.id && c.data === dataStr);
                 const totes_ass = classesDia.flatMap(c => c.assistencies || []);
                 const cancelades = totes_ass.filter(a => a.estat === "cancelada");
-                const recuperacions = totes_ass.filter(a => a.estat === "recuperacio");
+                const recuperacionsAssist = totes_ass.filter(a => a.estat === "recuperacio");
+                // Also check direct recuperacions table for this date
+                const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => 
+                  r.data_proposta_alumna === dataStr
+                ).map(r => ({ alumna_id: r.alumna_id, alumnes: r.alumnes, estat: "recuperacio" }));
+                // Merge, avoid duplicates by alumna_id
+                const totsIds = new Set(recuperacionsAssist.map(r => r.alumna_id));
+                const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
                 return {
                   ...f,
                   alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
@@ -2025,72 +2052,94 @@ function PanelProfessora({ professora, onLogout }) {
               </div>
             )}
 
-            {tab === "setmana" && (
-              <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Classes aquesta setmana</div>
-                {classes.length === 0 ? (
-                  <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens classes assignades aquesta setmana</div>
+            {tab === "setmana" && (() => {
+              // Day navigator
+              const diesDisponibles = classes;
+              const idxAvui = diesDisponibles.findIndex(d => d.dia === diaSemanaAvui);
+              const [diaIdx, setDiaIdx] = useState(idxAvui >= 0 ? idxAvui : 0);
+              const diaActual = diesDisponibles[diaIdx];
+              const mesos = ["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"];
+              return (
+                <>
+                  {/* Day navigator */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, background: C.white, borderRadius: 14, padding: "10px 12px", border: `0.5px solid ${C.border}` }}>
+                    <button onClick={() => setDiaIdx(i => Math.max(0, i - 1))} disabled={diaIdx === 0}
+                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx === 0 ? C.oliveXpale : C.white, cursor: diaIdx === 0 ? "default" : "pointer", fontSize: 18, color: diaIdx === 0 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>‹</button>
+                    <div style={{ flex: 1, textAlign: "center" }}>
+                      {diesDisponibles.length === 0 ? (
+                        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense classes aquesta setmana</div>
+                      ) : diaActual ? (
+                        <>
+                          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: diaActual.dia === diaSemanaAvui ? C.terra : C.oliveDark }}>
+                            {dies[diaActual.dia]} {diaActual.dataObj.getDate()} de {mesos[diaActual.dataObj.getMonth()+1]}
+                          </div>
+                          {diaActual.dia === diaSemanaAvui && <div style={{ fontSize: 10, color: C.terra, marginTop: 2 }}>Avui</div>}
+                        </>
+                      ) : null}
+                    </div>
+                    <button onClick={() => setDiaIdx(i => Math.min(diesDisponibles.length - 1, i + 1))} disabled={diaIdx >= diesDisponibles.length - 1}
+                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx >= diesDisponibles.length - 1 ? C.oliveXpale : C.white, cursor: diaIdx >= diesDisponibles.length - 1 ? "default" : "pointer", fontSize: 18, color: diaIdx >= diesDisponibles.length - 1 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>›</button>
                   </div>
-                ) : (
-                  classes.map(dia => (
-                    <div key={dia.dia} style={{ marginBottom: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: dia.dia === diaSemanaAvui ? C.terra : C.oliveDark }}>
-                          {dies[dia.dia]}
+
+                  {/* Day dots navigator */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
+                    {diesDisponibles.map((d, i) => (
+                      <button key={i} onClick={() => setDiaIdx(i)} style={{ width: i === diaIdx ? 20 : 8, height: 8, borderRadius: 4, background: i === diaIdx ? C.oliveDark : C.border, border: "none", cursor: "pointer", transition: "all .2s", padding: 0 }} />
+                    ))}
+                  </div>
+
+                  {/* Classes del dia seleccionat */}
+                  {diaActual ? diaActual.franges.map(f => (
+                    <div key={f.id} style={{ ...card, marginBottom: 8 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
+                          <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
                         </div>
-                        <div style={{ fontSize: 12, color: C.soft }}>{dia.dataObj.getDate()} de {["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"][dia.dataObj.getMonth()+1]}</div>
-                        {dia.dia === diaSemanaAvui && <span style={tag("warn")}>Avui</span>}
+                        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length + (f.recuperacions?.length || 0)} alumnes</div>
+                          {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
+                          {(f.recuperacions?.length || 0) > 0 && <div style={{ fontSize: 11, color: C.terra }}>{f.recuperacions.length} recuperació{f.recuperacions.length > 1 ? "ns" : ""}</div>}
+                          <button style={{ ...btn("danger"), fontSize: 10, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, diaActual.dataStr)}>Bloquejar</button>
+                        </div>
                       </div>
-                      {dia.franges.map(f => (
-                        <div key={f.id} style={{ ...card, marginBottom: 8 }}>
-                          <div style={{ padding: "12px 16px", borderBottom: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                              <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
-                              <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                      {f.alumnes.map((h) => {
+                        const cancelada = f.cancelades.some(c => c.alumna_id === h.alumna_id);
+                        return (
+                          <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, opacity: cancelada ? 0.4 : 1 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
+                              {h.alumnes?.nom?.[0] || "?"}
                             </div>
-                            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                              <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length + (f.recuperacions?.length || 0)} alumnes</div>
-                              {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
-                              {(f.recuperacions?.length || 0) > 0 && <div style={{ fontSize: 11, color: C.success }}>{f.recuperacions.length} recuperació{f.recuperacions.length > 1 ? "ns" : ""}</div>}
-                              <button style={{ ...btn("danger"), fontSize: 10, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, dia.dataStr)}>Bloquejar</button>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                              {cancelada && <div style={{ fontSize: 11, color: C.danger }}>Ha cancel·lat</div>}
                             </div>
                           </div>
-                          {f.alumnes.map((h, i) => {
-                            const cancelada = f.cancelades.some(c => c.alumna_id === h.alumna_id);
-                            return (
-                              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, opacity: cancelada ? 0.4 : 1 }}>
-                                <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
-                                  {h.alumnes?.nom?.[0] || "?"}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
-                                  {cancelada && <div style={{ fontSize: 11, color: C.danger }}>Ha cancel·lat</div>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {(f.recuperacions || []).map((r, i) => (
-                            <div key={`recup-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, background: C.successPale }}>
-                              <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.successPale, border: `1.5px solid ${C.success}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.success, flexShrink: 0 }}>
-                                {r.alumnes?.nom?.[0] || "↺"}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 13, fontWeight: 500, color: C.success }}>{r.alumnes?.nom} {r.alumnes?.cognom}</div>
-                                <div style={{ fontSize: 11, color: C.success }}>Recuperació</div>
-                              </div>
-                            </div>
-                          ))}
-                          {f.alumnes.length === 0 && (f.recuperacions?.length || 0) === 0 && (
-                            <div style={{ padding: "12px 16px", fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
-                          )}
+                        );
+                      })}
+                      {(f.recuperacions || []).map((r, i) => (
+                        <div key={`recup-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, background: C.terraPale }}>
+                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraPale, border: `1.5px solid ${C.terra}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.terraDark, flexShrink: 0 }}>
+                            {r.alumnes?.nom?.[0] || "↺"}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: C.terraDark }}>{r.alumnes?.nom} {r.alumnes?.cognom}</div>
+                            <div style={{ fontSize: 11, color: C.terra }}>Recuperació</div>
+                          </div>
                         </div>
                       ))}
+                      {f.alumnes.length === 0 && (f.recuperacions?.length || 0) === 0 && (
+                        <div style={{ padding: "12px 16px", fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
+                      )}
                     </div>
-                  ))
-                )}
-              </>
-            )}
+                  )) : (
+                    <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
+                      <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens classes assignades aquesta setmana</div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {tab === "calendari" && <VistaCalendari mobile />}
 
