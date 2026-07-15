@@ -241,12 +241,12 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = [], recu
         a.franja_id === f.id && a.data === dateStr && a.estat === "recuperacio"
       ).length;
 
-      // Count recuperacions approved directly (may not have assistencia yet)
-      // We need franja info to match - use hora_inici of the franja for this date
-      const franjaActual = franges.find(ff => ff.id === f.id);
-      const recuperacionsDirectes = recuperacionsAprovades.filter(r =>
-        r.data_proposta_alumna === dateStr
-      ).length;
+      // Count recuperacions approved directly - filter by franja_id if available
+      const recuperacionsDirectes = recuperacionsAprovades.filter(r => {
+        const dataOk = r.data_proposta_alumna === dateStr;
+        const franjaOk = r.franja_id ? r.franja_id === f.id : false;
+        return dataOk && franjaOk;
+      }).length;
 
       // Total recuperacions (avoid double counting if both exist)
       const recuperacions = Math.max(recuperacionsAssist, recuperacionsDirectes);
@@ -328,7 +328,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const avuiStr2 = avui.toISOString().split("T")[0];
     const [bloquejosRes, recuperacionsAprovRes] = await Promise.all([
       supabase.from("bloquejos").select("*").gte("data", avuiStr2).lte("data", limitStr),
-      supabase.from("recuperacions").select("alumna_id, data_proposta_alumna").eq("estat", "aprovada").gte("data_proposta_alumna", avuiStr2).lte("data_proposta_alumna", limitStr),
+      supabase.from("recuperacions").select("alumna_id, franja_id, data_proposta_alumna").eq("estat", "aprovada").gte("data_proposta_alumna", avuiStr2).lte("data_proposta_alumna", limitStr),
     ]);
     window._bloquejos = bloquejosRes.data || [];
     window._recuperacionsAprov = recuperacionsAprovRes.data || [];
@@ -416,7 +416,11 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
     if (slotAction === "recuperacio" && pendentsRecup.length > 0) {
       const recup = pendentsRecup[0];
-      await supabase.from("recuperacions").update({ data_proposta_alumna: slot.data, estat: "aprovada" }).eq("id", recup.id);
+      await supabase.from("recuperacions").update({ 
+        data_proposta_alumna: slot.data, 
+        estat: "aprovada",
+        franja_id: slot.franja_id
+      }).eq("id", recup.id);
       let classeId = null;
       const { data: existingClasse } = await supabase.from("classes").select("id").eq("franja_id", slot.franja_id).eq("data", slot.data).single();
       if (existingClasse) { classeId = existingClasse.id; }
@@ -438,9 +442,14 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       }
       setModalSlot(null);
       fetchDades();
-      alert("Recuperacio confirmada! Ens veiem el " + formatDataCurta(slot.dataObj) + " a les " + slot.hora);
+      alert("Recuperacio confirmada! Ens veiem el " + formatDataCurta(new Date(slot.data + "T12:00:00")) + " a les " + slot.hora);
     } else {
       await supabase.from("canvis_horari").insert([{ alumna_id: alumna.id, franja_sollicitada_id: slot.franja_id, estat: "pendent", nota_alumna: "Sol.licitud des del calendari per al " + slot.data }]);
+      // Also update recuperacio with franja if pending
+      const recupPendent = recuperacions.find(r => r.estat === "pendent");
+      if (recupPendent) {
+        await supabase.from("recuperacions").update({ franja_id: slot.franja_id, data_proposta_alumna: slot.data }).eq("id", recupPendent.id);
+      }
       setModalSlot(null);
       fetchDades();
       alert("Sol.licitud enviada a Rosario! Et confirmara aviat.");
@@ -1969,10 +1978,13 @@ function PanelProfessora({ professora, onLogout }) {
                 const totes_ass = classesDia.flatMap(c => c.assistencies || []);
                 const cancelades = totes_ass.filter(a => a.estat === "cancelada");
                 const recuperacionsAssist = totes_ass.filter(a => a.estat === "recuperacio");
-                // Also check direct recuperacions table for this date
-                const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => 
-                  r.data_proposta_alumna === dataStr
-                ).map(r => ({ alumna_id: r.alumna_id, alumnes: r.alumnes, estat: "recuperacio" }));
+                // Also check direct recuperacions table for this date AND franja
+                const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => {
+                  const dataOk = r.data_proposta_alumna === dataStr;
+                  // If franja_id is saved, match exactly; if not, show on all franges (legacy)
+                  const franjaOk = r.franja_id ? r.franja_id === f.id : true;
+                  return dataOk && franjaOk;
+                }).map(r => ({ alumna_id: r.alumna_id, alumnes: r.alumnes, estat: "recuperacio" }));
                 // Merge, avoid duplicates by alumna_id
                 const totsIds = new Set(recuperacionsAssist.map(r => r.alumna_id));
                 const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
