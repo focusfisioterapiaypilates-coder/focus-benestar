@@ -203,7 +203,7 @@ function formatDataCurta(date) {
   return `${dies[dia]} ${date.getDate()} de ${mesos[date.getMonth()]}`;
 }
 
-function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
+function generateSlots(franges, horarisFixos, assistencies, bloquejos = [], recuperacionsAprovades = []) {
   const slots = [];
   const avui = new Date();
   avui.setHours(0,0,0,0);
@@ -236,10 +236,20 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = []) {
         a.franja_id === f.id && a.data === dateStr && a.estat === "cancelada"
       ).length;
 
-      // Count recuperacions for this date (occupies spots)
-      const recuperacions = assistencies.filter(a =>
+      // Count recuperacions from assistencies table
+      const recuperacionsAssist = assistencies.filter(a =>
         a.franja_id === f.id && a.data === dateStr && a.estat === "recuperacio"
       ).length;
+
+      // Count recuperacions approved directly (may not have assistencia yet)
+      // We need franja info to match - use hora_inici of the franja for this date
+      const franjaActual = franges.find(ff => ff.id === f.id);
+      const recuperacionsDirectes = recuperacionsAprovades.filter(r =>
+        r.data_proposta_alumna === dateStr
+      ).length;
+
+      // Total recuperacions (avoid double counting if both exist)
+      const recuperacions = Math.max(recuperacionsAssist, recuperacionsDirectes);
 
       const ocupades = fixos + puntuals - cancelades + recuperacions;
       const lliures = Math.max(0, max - ocupades);
@@ -316,8 +326,12 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
     // Fetch bloquejos
     const avuiStr2 = avui.toISOString().split("T")[0];
-    const { data: bloquejos } = await supabase.from("bloquejos").select("*").gte("data", avuiStr2).lte("data", limitStr);
-    window._bloquejos = bloquejos || [];
+    const [bloquejosRes, recuperacionsAprovRes] = await Promise.all([
+      supabase.from("bloquejos").select("*").gte("data", avuiStr2).lte("data", limitStr),
+      supabase.from("recuperacions").select("alumna_id, data_proposta_alumna").eq("estat", "aprovada").gte("data_proposta_alumna", avuiStr2).lte("data_proposta_alumna", limitStr),
+    ]);
+    window._bloquejos = bloquejosRes.data || [];
+    window._recuperacionsAprov = recuperacionsAprovRes.data || [];
 
     setLoading(false);
   }
@@ -392,6 +406,13 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   }
 
   async function handleApuntarSlot(slot) {
+    // Double-check slot still has space (in case someone booked it meanwhile)
+    if (slot.lliures <= 0) {
+      alert("Ho sentim, aquest horari s'ha emplenat. Tria un altre.");
+      setModalSlot(null);
+      fetchDades();
+      return;
+    }
     const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
     if (slotAction === "recuperacio" && pendentsRecup.length > 0) {
       const recup = pendentsRecup[0];
@@ -427,7 +448,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
   }
 
   const pendentsRecup = recuperacions.filter(r => r.estat === "pendent");
-  const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || [], window._bloquejos || []);
+  const slots = generateSlots(franges, ocupacions, window._assistenciesFlat || [], window._bloquejos || [], window._recuperacionsAprov || []);
   
   // Calendar picker state for recuperacio
   const [calDiaSeleccionat, setCalDiaSeleccionat] = useState(null);
