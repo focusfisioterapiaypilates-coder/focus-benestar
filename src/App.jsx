@@ -1885,6 +1885,7 @@ function PanelProfessora({ professora, onLogout }) {
   const [notificacions, setNotificacions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("setmana");
+  const [diaIdx, setDiaIdx] = useState(0);
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
 
   useEffect(() => { fetchDades(); }, []);
@@ -1965,8 +1966,12 @@ function PanelProfessora({ professora, onLogout }) {
         }
       }
       setClasses(setmana);
+      // Auto-select today
+      const idxAvui = setmana.findIndex(d => d.dia === (new Date().getDay() === 0 ? 7 : new Date().getDay()));
+      setDiaIdx(idxAvui >= 0 ? idxAvui : 0);
     } else {
       setClasses([]);
+      setDiaIdx(0);
     }
 
     // Get notificacions
@@ -2053,11 +2058,8 @@ function PanelProfessora({ professora, onLogout }) {
             )}
 
             {tab === "setmana" && (() => {
-              // Day navigator
               const diesDisponibles = classes;
-              const idxAvui = diesDisponibles.findIndex(d => d.dia === diaSemanaAvui);
-              const [diaIdx, setDiaIdx] = useState(idxAvui >= 0 ? idxAvui : 0);
-              const diaActual = diesDisponibles[diaIdx];
+              const diaActual = diesDisponibles[Math.min(diaIdx, diesDisponibles.length - 1)];
               const mesos = ["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"];
               return (
                 <>
