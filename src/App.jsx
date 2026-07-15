@@ -220,7 +220,7 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = [], recu
   for (let d = new Date(avui); d <= limit; d.setDate(d.getDate() + 1)) {
     const diaSemana = d.getDay() === 0 ? 7 : d.getDay();
     if (diaSemana > 5) continue;
-    const dateStr = d.toLocaleDateString("sv-SE");
+    const dateStr = toLocalDateStr(d);
 
     franges.forEach(f => {
       if (f.dia_setmana !== diaSemana) return;
@@ -295,8 +295,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const avui = new Date();
     const limit = new Date(avui);
     limit.setDate(avui.getDate() + 30);
-    const limitStr = limit.toLocaleDateString("sv-SE");
-    const avuiStr = avui.toLocaleDateString("sv-SE");
+    const limitStr = toLocalDateStr(limit);
+    const avuiStr = toLocalDateStr(avui);
     const [h, a, r, fr, totsHoraris, assistenciesClasses] = await Promise.all([
       // This alumna's horaris
       supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(nom, telefon))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
@@ -332,7 +332,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     window._assistenciesFlat = flat;
 
     // Fetch bloquejos
-    const avuiStr2 = avui.toLocaleDateString("sv-SE");
+    const avuiStr2 = toLocalDateStr(avui);
     const [bloquejosRes, recuperacionsAprovRes] = await Promise.all([
       supabase.from("bloquejos").select("*").gte("data", avuiStr2).lte("data", limitStr),
       supabase.from("recuperacions").select("alumna_id, franja_id, data_proposta_alumna").eq("estat", "aprovada").gte("data_proposta_alumna", avuiStr2).lte("data_proposta_alumna", limitStr),
@@ -349,7 +349,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const franja = h.franges;
     const horaInici = franja?.hora_inici || "00:00";
     // Use specific date from 28-day list, or calculate next occurrence
-    const nextDateStr = h._dataEspecifica || getNextDate(franja?.dia_setmana, franja?.hora_inici).toLocaleDateString("sv-SE");
+    const nextDateStr = h._dataEspecifica || toLocalDateStr(getNextDate(franja?.dia_setmana, franja?.hora_inici));
     const nextDate = new Date(nextDateStr + "T12:00:00");
     const classeDateTime = new Date(nextDateStr + "T" + horaInici);
     const horasDiff = (classeDateTime - new Date()) / (1000 * 60 * 60);
@@ -377,7 +377,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       await supabase.from("recuperacions").insert([{
         alumna_id: alumna.id,
         estat: "pendent",
-        data_caducitat: caducitat.toLocaleDateString("sv-SE"),
+        data_caducitat: toLocalDateStr(caducitat),
         data_proposta_alumna: null,
       }]);
     }
@@ -535,7 +535,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       ? formatDataCurta(new Date(h.data_classe + "T12:00:00"))
                       : (nextDate ? formatDataCurta(nextDate) : "");
                     // Comprovar si la propera classe d'aquesta franja ja esta cancel.lada
-                    const dataComparar = esPuntual ? h.data_classe : (nextDate ? nextDate.toLocaleDateString("sv-SE") : null);
+                    const dataComparar = esPuntual ? h.data_classe : (nextDate ? toLocalDateStr(nextDate) : null);
                     const jaCancel·lada = assistencies.some(a =>
                       a.classes?.franja_id === h.franja_id &&
                       a.classes?.data === dataComparar &&
@@ -578,7 +578,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     if (d <= fiSetmanaActual) continue;
                     const diaNum = d.getDay() === 0 ? 7 : d.getDay();
                     if (diaNum > 5) continue;
-                    const dateStr = d.toLocaleDateString("sv-SE");
+                    const dateStr = toLocalDateStr(d);
                     horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus)).forEach(h => {
                       const jaCancel = assistencies.some(a => a.classes?.franja_id === h.franja_id && a.classes?.data === dateStr && a.estat === "cancelada");
                       properes.push({ h, d: new Date(d), dateStr, jaCancel });
@@ -699,7 +699,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       const cells = [];
                       for (let i = 0; i < diesBuides; i++) cells.push(<div key={`b${i}`} />);
                       for (let d = new Date(avui); d <= limit; d.setDate(d.getDate() + 1)) {
-                        const dateStr = d.toLocaleDateString("sv-SE");
+                        const dateStr = toLocalDateStr(d);
                         const teSlots = !!slotsByDate[dateStr];
                         const isAvui = d.toDateString() === avui.toDateString();
                         const dCopy = new Date(d);
@@ -766,7 +766,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
       {modalCancelar && (
         <Modal title="Cancel.lar classe" sub={(() => {
-          const dataStr = modalCancelar._dataEspecifica || (modalCancelar.franges ? getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici).toLocaleDateString("sv-SE") : null);
+          const dataStr = modalCancelar._dataEspecifica || (modalCancelar.franges ? toLocalDateStr(getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici)) : null);
           return dataStr ? formatDataCurta(new Date(dataStr + "T12:00:00")) : "";
         })()} onClose={() => setModalCancelar(null)}>
           <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.warn, lineHeight: 1.6 }}>
@@ -961,7 +961,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 
   async function fetchHoraris() {
     setLoadingH(true);
-    const avui = new Date().toLocaleDateString("sv-SE");
+    const avui = toLocalDateStr(new Date());
     // Auto-desactivar classes puntuals passades
     await supabase.from("horaris_alumnes")
       .update({ actiu: false })
@@ -1294,8 +1294,8 @@ function VistaCalendari({ mobile }) {
   async function fetchDades() {
     setLoading(true);
     const setmana = getSetmana();
-    const inici = setmana[0].toLocaleDateString("sv-SE");
-    const fi = setmana[4].toLocaleDateString("sv-SE");
+    const inici = toLocalDateStr(setmana[0]);
+    const fi = toLocalDateStr(setmana[4]);
     const [fr, ho, bl] = await Promise.all([
       supabase.from("franges").select("*, serveis(*), professores(nom)").eq("activa", true).order("hora_inici"),
       supabase.from("horaris_alumnes").select("*, alumnes(nom, cognom), franges(dia_setmana, hora_inici)").eq("actiu", true),
@@ -1313,7 +1313,7 @@ function VistaCalendari({ mobile }) {
 
   // Get classes for a specific day
   function getClassesDia(diaNum, dataObj) {
-    const dataStr = dataObj.toLocaleDateString("sv-SE");
+    const dataStr = toLocalDateStr(dataObj);
     return franges
       .filter(f => f.dia_setmana === diaNum)
       .map(f => {
@@ -1428,7 +1428,7 @@ function VistaCalendari({ mobile }) {
                 </div>,
                 ...setmana.map((dataObj, diaIdx) => {
                   const diaNum = diaIdx + 1;
-                  const dataStr = dataObj.toLocaleDateString("sv-SE");
+                  const dataStr = toLocalDateStr(dataObj);
                   const classesCela = franges.filter(f => {
                     if (f.dia_setmana !== diaNum) return false;
                     const h = parseInt(f.hora_inici?.slice(0,2) || "0");
@@ -1935,8 +1935,8 @@ function PanelProfessora({ professora, onLogout }) {
     inicSemana.setDate(avui.getDate() - diaSemana + 1);
     const fiSemana = new Date(inicSemana);
     fiSemana.setDate(inicSemana.getDate() + 6);
-    const inicStr = inicSemana.toLocaleDateString("sv-SE");
-    const fiStr = fiSemana.toLocaleDateString("sv-SE");
+    const inicStr = toLocalDateStr(inicSemana);
+    const fiStr = toLocalDateStr(fiSemana);
 
     // Get franges for this professora
     const { data: franges } = await supabase.from("franges")
@@ -1973,7 +1973,7 @@ function PanelProfessora({ professora, onLogout }) {
       for (let dia = 1; dia <= 5; dia++) {
         const dataObj = new Date(inicSemana);
         dataObj.setDate(inicSemana.getDate() + dia - 1);
-        const dataStr = dataObj.toLocaleDateString("sv-SE");
+        const dataStr = toLocalDateStr(dataObj);
         const frangesDia = franges.filter(f => f.dia_setmana === dia);
         if (frangesDia.length > 0) {
           setmana.push({
