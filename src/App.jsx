@@ -1947,34 +1947,52 @@ function PanelProfessora({ professora, onLogout }) {
     if (franges && franges.length > 0) {
       const franjaIds = franges.map(f => f.id);
 
-      // Get horaris alumnes for these franges (shows who attends each class)
+      // Get horaris alumnes (fixed schedule)
       const { data: horarisData } = await supabase.from("horaris_alumnes")
-        .select("*, alumnes(nom, cognom, telefon), franges(dia_setmana, hora_inici, hora_fi, serveis(nom))")
+        .select("*, alumnes(nom, cognom, telefon)")
         .in("franja_id", franjaIds)
         .eq("actiu", true)
         .eq("tipus", "fix");
 
-      // Get classes for this week with their assistencies
-      const { data: classesAmbAss } = await supabase.from("classes")
-        .select("franja_id, data, assistencies(estat, alumna_id, alumnes(nom, cognom))")
+      // Get ALL assistencies for this week using RPC-style query
+      // First get classe ids for this week
+      const { data: classeIds } = await supabase.from("classes")
+        .select("id, franja_id, data")
         .in("franja_id", franjaIds)
         .gte("data", inicStr)
         .lte("data", fiStr);
 
-      // Get recuperacions directly from recuperacions table (backup)
+      // Build franja+data -> classe_id map
+      const classeMap = {};
+      (classeIds || []).forEach(c => { classeMap[c.id] = { franja_id: c.franja_id, data: c.data }; });
+      const classeIdList = Object.keys(classeMap);
+
+      // Get assistencies for those classes
+      let assistenciesData = [];
+      if (classeIdList.length > 0) {
+        const { data: ass } = await supabase.from("assistencies")
+          .select("classe_id, estat, alumna_id, alumnes(nom, cognom)")
+          .in("classe_id", classeIdList)
+          .in("estat", ["cancelada", "recuperacio"]);
+        assistenciesData = ass || [];
+      }
+
+      // Build lookup franja_id|data -> assistencies
+      const assLookup = {};
+      assistenciesData.forEach(a => {
+        const info = classeMap[a.classe_id];
+        if (!info) return;
+        const key = info.franja_id + "|" + info.data;
+        if (!assLookup[key]) assLookup[key] = [];
+        assLookup[key].push(a);
+      });
+
+      // Also get recuperacions from recuperacions table
       const { data: recuperacionsSetmana } = await supabase.from("recuperacions")
         .select("alumna_id, franja_id, data_proposta_alumna, alumnes(nom, cognom)")
         .eq("estat", "aprovada")
         .gte("data_proposta_alumna", inicStr)
         .lte("data_proposta_alumna", fiStr);
-
-      // Build lookup: { "franja_id|data": [assistencies] }
-      const assLookup = {};
-      (classesAmbAss || []).forEach(cl => {
-        const key = cl.franja_id + "|" + cl.data;
-        if (!assLookup[key]) assLookup[key] = [];
-        (cl.assistencies || []).forEach(a => assLookup[key].push(a));
-      });
 
       // Build weekly schedule
       const setmana = [];
@@ -1993,14 +2011,9 @@ function PanelProfessora({ professora, onLogout }) {
                 const assPerFranja = assLookup[key] || [];
                 const cancelades = assPerFranja.filter(a => a.estat === "cancelada");
                 const recuperacionsAssist = assPerFranja.filter(a => a.estat === "recuperacio");
-                // Also check direct recuperacions table for this date AND franja
-                const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => {
-                  const dataOk = r.data_proposta_alumna === dataStr;
-                  // If franja_id is saved, match exactly; if not, show on all franges (legacy)
-                  const franjaOk = r.franja_id ? r.franja_id === f.id : true;
-                  return dataOk && franjaOk;
-                }).map(r => ({ alumna_id: r.alumna_id, alumnes: r.alumnes, estat: "recuperacio" }));
-                // Merge, avoid duplicates by alumna_id
+                const recuperacionsDirectes = (recuperacionsSetmana || [])
+                  .filter(r => r.data_proposta_alumna === dataStr && r.franja_id === f.id)
+                  .map(r => ({ alumna_id: r.alumna_id, alumnes: r.alumnes }));
                 const totsIds = new Set(recuperacionsAssist.map(r => r.alumna_id));
                 const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
                 return {
