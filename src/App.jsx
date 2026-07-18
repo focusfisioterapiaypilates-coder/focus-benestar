@@ -355,7 +355,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const horasDiff = (classeDateTime - new Date()) / (1000 * 60 * 60);
     const tipusCancelacio = horasDiff >= 24 ? "mes_24h" : "menys_24h";
     let classeId = null;
-    const { data: existingClasse } = await supabase.from("classes").select("id").eq("franja_id", franja?.id).eq("data", nextDateStr).single();
+    const { data: existingClasArr } = await supabase.from("classes").select("id").eq("franja_id", franja?.id).eq("data", nextDateStr).limit(1);
+    const existingClasse = existingClasArr?.[0] || null;
     if (existingClasse) {
       classeId = existingClasse.id;
     } else {
@@ -363,7 +364,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       if (newClasse) classeId = newClasse.id;
     }
     if (classeId) {
-      const { data: existing } = await supabase.from("assistencies").select("id").eq("classe_id", classeId).eq("alumna_id", alumna.id).single();
+      const { data: existingArr } = await supabase.from("assistencies").select("id").eq("classe_id", classeId).eq("alumna_id", alumna.id).limit(1);
+      const existing = existingArr?.[0] || null;
       if (existing) {
         await supabase.from("assistencies").update({ estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }).eq("id", existing.id);
       } else {
@@ -429,7 +431,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
         franja_id: slot.franja_id
       }).eq("id", recup.id);
       let classeId = null;
-      const { data: existingClasse } = await supabase.from("classes").select("id").eq("franja_id", slot.franja_id).eq("data", slot.data).single();
+      const { data: existingClasArr2 } = await supabase.from("classes").select("id").eq("franja_id", slot.franja_id).eq("data", slot.data).limit(1);
+      const existingClasse = existingClasArr2?.[0] || null;
       if (existingClasse) { classeId = existingClasse.id; }
       else {
         const { data: newClasse } = await supabase.from("classes").insert([{ franja_id: slot.franja_id, data: slot.data, estat: "programada" }]).select().single();
@@ -1967,14 +1970,14 @@ function PanelProfessora({ professora, onLogout }) {
       (classeIds || []).forEach(c => { classeMap[c.id] = { franja_id: c.franja_id, data: c.data }; });
       const classeIdList = Object.keys(classeMap);
 
-      // Get assistencies for those classes
+      // Get assistencies for those classes (only if there are classes)
       let assistenciesData = [];
       if (classeIdList.length > 0) {
-        const { data: ass } = await supabase.from("assistencies")
+        const { data: ass, error: assError } = await supabase.from("assistencies")
           .select("classe_id, estat, alumna_id, alumnes(nom, cognom)")
           .in("classe_id", classeIdList)
           .in("estat", ["cancelada", "recuperacio"]);
-        assistenciesData = ass || [];
+        if (!assError) assistenciesData = ass || [];
       }
 
       // Build lookup franja_id|data -> assistencies
