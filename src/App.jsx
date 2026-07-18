@@ -1954,24 +1954,26 @@ function PanelProfessora({ professora, onLogout }) {
         .eq("actiu", true)
         .eq("tipus", "fix");
 
-      // Get assistencies directly - both cancelations and recuperacions
-      const { data: assistenciesSetmana } = await supabase.from("assistencies")
-        .select("estat, alumna_id, alumnes(nom, cognom), classes(franja_id, data)")
-        .in("estat", ["cancelada", "recuperacio"]);
+      // Get classes for this week with their assistencies
+      const { data: classesAmbAss } = await supabase.from("classes")
+        .select("franja_id, data, assistencies(estat, alumna_id, alumnes(nom, cognom))")
+        .in("franja_id", franjaIds)
+        .gte("data", inicStr)
+        .lte("data", fiStr);
 
-      // Get recuperacions directly from recuperacions table
+      // Get recuperacions directly from recuperacions table (backup)
       const { data: recuperacionsSetmana } = await supabase.from("recuperacions")
-        .select("*, alumnes(nom, cognom)")
+        .select("alumna_id, franja_id, data_proposta_alumna, alumnes(nom, cognom)")
         .eq("estat", "aprovada")
         .gte("data_proposta_alumna", inicStr)
         .lte("data_proposta_alumna", fiStr);
-      
-      // Build flat list of assistencies for this week's franges
-      const assistenciesFlat = (assistenciesSetmana || []).filter(a => {
-        const franja_id = a.classes?.franja_id;
-        const data = a.classes?.data;
-        if (!franja_id || !data) return false;
-        return franjaIds.includes(franja_id) && data >= inicStr && data <= fiStr;
+
+      // Build lookup: { "franja_id|data": [assistencies] }
+      const assLookup = {};
+      (classesAmbAss || []).forEach(cl => {
+        const key = cl.franja_id + "|" + cl.data;
+        if (!assLookup[key]) assLookup[key] = [];
+        (cl.assistencies || []).forEach(a => assLookup[key].push(a));
       });
 
       // Build weekly schedule
@@ -1987,12 +1989,10 @@ function PanelProfessora({ professora, onLogout }) {
             franges: [...frangesDia]
               .sort((a, b) => (a.hora_inici || "").localeCompare(b.hora_inici || ""))
               .map(f => {
-                const cancelades = assistenciesFlat.filter(a => 
-                  a.classes?.franja_id === f.id && a.classes?.data === dataStr && a.estat === "cancelada"
-                );
-                const recuperacionsAssist = assistenciesFlat.filter(a => 
-                  a.classes?.franja_id === f.id && a.classes?.data === dataStr && a.estat === "recuperacio"
-                );
+                const key = f.id + "|" + dataStr;
+                const assPerFranja = assLookup[key] || [];
+                const cancelades = assPerFranja.filter(a => a.estat === "cancelada");
+                const recuperacionsAssist = assPerFranja.filter(a => a.estat === "recuperacio");
                 // Also check direct recuperacions table for this date AND franja
                 const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => {
                   const dataOk = r.data_proposta_alumna === dataStr;
