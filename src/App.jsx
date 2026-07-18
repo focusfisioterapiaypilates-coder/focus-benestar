@@ -1926,16 +1926,17 @@ function PanelProfessora({ professora, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("setmana");
   const [diaIdx, setDiaIdx] = useState(0);
+  const [setmanaOffset, setSetmanaOffset] = useState(0);
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
 
-  useEffect(() => { fetchDades(); }, []);
+  useEffect(() => { fetchDades(); }, [setmanaOffset]);
 
   async function fetchDades() {
     setLoading(true);
     const avui = new Date();
     const diaSemana = avui.getDay() === 0 ? 7 : avui.getDay();
     const inicSemana = new Date(avui);
-    inicSemana.setDate(avui.getDate() - diaSemana + 1);
+    inicSemana.setDate(avui.getDate() - diaSemana + 1 + setmanaOffset * 7);
     const fiSemana = new Date(inicSemana);
     fiSemana.setDate(inicSemana.getDate() + 6);
     const inicStr = toLocalDateStr(inicSemana);
@@ -2127,6 +2128,15 @@ function PanelProfessora({ professora, onLogout }) {
               const mesos = ["","gen","feb","mar","abr","mai","jun","jul","ago","set","oct","nov","des"];
               return (
                 <>
+                  {/* Week navigator */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, background: C.oliveDark, borderRadius: 10, padding: "8px 12px" }}>
+                    <button onClick={() => { setSetmanaOffset(o => o - 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 16, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                    <div style={{ flex: 1, textAlign: "center", fontSize: 12, color: C.white, fontWeight: 500 }}>
+                      {setmanaOffset === 0 ? "Aquesta setmana" : setmanaOffset === 1 ? "Setmana que ve" : setmanaOffset === -1 ? "Setmana passada" : `Setmana ${setmanaOffset > 0 ? "+" : ""}${setmanaOffset}`}
+                    </div>
+                    <button onClick={() => { setSetmanaOffset(o => o + 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 16, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+                  </div>
+
                   {/* Day navigator */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, background: C.white, borderRadius: 14, padding: "10px 12px", border: `0.5px solid ${C.border}` }}>
                     <button onClick={() => setDiaIdx(i => Math.max(0, i - 1))} disabled={diaIdx === 0}
