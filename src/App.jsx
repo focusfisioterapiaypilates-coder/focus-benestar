@@ -1954,19 +1954,25 @@ function PanelProfessora({ professora, onLogout }) {
         .eq("actiu", true)
         .eq("tipus", "fix");
 
-      // Get assistencies (cancelations + recuperacions this week)
-      const { data: classesSetmana } = await supabase.from("classes")
-        .select("id, franja_id, data, assistencies(estat, alumna_id, alumnes(nom, cognom))")
-        .in("franja_id", franjaIds)
-        .gte("data", inicStr)
-        .lte("data", fiStr);
-      
-      // Also get recuperacions directly (in case classe doesnt exist yet for that slot)
+      // Get assistencies directly - both cancelations and recuperacions
+      const { data: assistenciesSetmana } = await supabase.from("assistencies")
+        .select("estat, alumna_id, alumnes(nom, cognom), classes(franja_id, data)")
+        .in("estat", ["cancelada", "recuperacio"]);
+
+      // Get recuperacions directly from recuperacions table
       const { data: recuperacionsSetmana } = await supabase.from("recuperacions")
         .select("*, alumnes(nom, cognom)")
         .eq("estat", "aprovada")
         .gte("data_proposta_alumna", inicStr)
         .lte("data_proposta_alumna", fiStr);
+      
+      // Build flat list of assistencies for this week's franges
+      const assistenciesFlat = (assistenciesSetmana || []).filter(a => {
+        const franja_id = a.classes?.franja_id;
+        const data = a.classes?.data;
+        if (!franja_id || !data) return false;
+        return franjaIds.includes(franja_id) && data >= inicStr && data <= fiStr;
+      });
 
       // Build weekly schedule
       const setmana = [];
@@ -1981,10 +1987,12 @@ function PanelProfessora({ professora, onLogout }) {
             franges: [...frangesDia]
               .sort((a, b) => (a.hora_inici || "").localeCompare(b.hora_inici || ""))
               .map(f => {
-                const classesDia = (classesSetmana || []).filter(c => c.franja_id === f.id && c.data === dataStr);
-                const totes_ass = classesDia.flatMap(c => c.assistencies || []);
-                const cancelades = totes_ass.filter(a => a.estat === "cancelada");
-                const recuperacionsAssist = totes_ass.filter(a => a.estat === "recuperacio");
+                const cancelades = assistenciesFlat.filter(a => 
+                  a.classes?.franja_id === f.id && a.classes?.data === dataStr && a.estat === "cancelada"
+                );
+                const recuperacionsAssist = assistenciesFlat.filter(a => 
+                  a.classes?.franja_id === f.id && a.classes?.data === dataStr && a.estat === "recuperacio"
+                );
                 // Also check direct recuperacions table for this date AND franja
                 const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => {
                   const dataOk = r.data_proposta_alumna === dataStr;
