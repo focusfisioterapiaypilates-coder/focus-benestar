@@ -68,7 +68,7 @@ function useIsMobile() {
 }
 
 const btn = (type, extra = {}) => {
-  const base = { padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all .15s", border: "none" };
+  const base = { padding: "8px 14px", borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all .15s", border: "none" };
   const types = {
     primary: { background: C.olive, color: C.white },
     secondary: { background: C.oliveXpale, color: C.oliveDark, border: `0.5px solid ${C.border}` },
@@ -87,7 +87,7 @@ const tag = (type) => {
     warn: { background: C.warnPale, color: C.warn },
     olive: { background: C.olivePale, color: C.oliveDark },
   };
-  return { ...types[type], fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 500, whiteSpace: "nowrap" };
+  return { ...types[type], fontSize: 12, padding: "2px 8px", borderRadius: 20, fontWeight: 500, whiteSpace: "nowrap" };
 };
 
 const card = { background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 14 };
@@ -98,9 +98,9 @@ function Modal({ title, sub, onClose, children }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(30,30,20,0.5)", zIndex: 300, display: "flex", alignItems: mobile ? "flex-end" : "center", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ background: C.white, borderRadius: mobile ? "20px 20px 0 0" : 18, padding: mobile ? "0 20px 36px" : 28, width: mobile ? "100%" : 480, maxWidth: "100vw", maxHeight: "88vh", overflowY: "auto", position: "relative" }}>
         {mobile && <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: "12px auto 20px" }} />}
-        <button onClick={onClose} style={{ position: "absolute", top: mobile ? 16 : 18, right: 18, background: "transparent", border: `0.5px solid ${C.border}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", fontSize: 14, color: C.soft }}>x</button>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>{title}</div>
-        {sub && <div style={{ fontSize: 13, color: C.soft, fontWeight: 300, marginBottom: 20 }}>{sub}</div>}
+        <button onClick={onClose} style={{ position: "absolute", top: mobile ? 16 : 18, right: 18, background: "transparent", border: `0.5px solid ${C.border}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", fontSize: 16, color: C.soft }}>x</button>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>{title}</div>
+        {sub && <div style={{ fontSize: 15, color: C.soft, fontWeight: 300, marginBottom: 20 }}>{sub}</div>}
         {children}
       </div>
     </div>
@@ -110,9 +110,9 @@ function Modal({ title, sub, onClose, children }) {
 function Field({ label, value, onChange, placeholder, type = "text" }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>{label}</div>
+      <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>{label}</div>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type}
-        style={{ width: "100%", padding: "9px 12px", border: `0.5px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.dark, background: C.cream, outline: "none", boxSizing: "border-box" }} />
+        style={{ width: "100%", padding: "9px 12px", border: `0.5px solid ${C.border}`, borderRadius: 8, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.dark, background: C.cream, outline: "none", boxSizing: "border-box" }} />
     </div>
   );
 }
@@ -139,32 +139,32 @@ function LoginAlumna({ onLogin }) {
 
   return (
     <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 202, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
       <div style={{ width: "100%", maxWidth: 380, position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white, lineHeight: 1, marginBottom: 6 }}>focus</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontStyle: "italic", color: "#d9a080" }}>et cuida.</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 700, color: C.white, lineHeight: 1, marginBottom: 6 }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: "italic", color: "#d9a080" }}>et cuida.</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 6 }}>Accedeix a la teva area</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24, lineHeight: 1.5 }}>Introdueix el teu numero de WhatsApp per entrar</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white, marginBottom: 6 }}>Accedeix a la teva area</div>
+          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24, lineHeight: 1.5 }}>Introdueix el teu numero de WhatsApp per entrar</div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Telefon WhatsApp</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Telefon WhatsApp</div>
             <input
               value={telefon}
               onChange={e => { setTelefon(e.target.value); setError(""); }}
               placeholder="+376 600 111"
               type="tel"
               onKeyDown={e => e.key === "Enter" && handleLogin()}
-              style={{ width: "100%", padding: "12px 14px", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 10, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.white, background: "rgba(255,255,255,0.08)", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "12px 14px", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 10, fontSize: 17, fontFamily: "'DM Sans', sans-serif", color: C.white, background: "rgba(255,255,255,0.08)", outline: "none", boxSizing: "border-box" }}
             />
           </div>
-          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 14, lineHeight: 1.5 }}>{error}</div>}
-          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 14, borderRadius: 10, opacity: loading ? 0.7 : 1 }}>
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 14, padding: "8px 12px", borderRadius: 8, marginBottom: 14, lineHeight: 1.5 }}>{error}</div>}
+          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 16, borderRadius: 10, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Comprovant..." : "Entrar"}
           </button>
         </div>
-        <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 300 }}>
+        <div style={{ textAlign: "center", marginTop: 20, fontSize: 14, color: "rgba(255,255,255,0.3)", fontWeight: 300 }}>
           Problemes per accedir? Escriu-nos al WhatsApp del centre
         </div>
       </div>
@@ -485,44 +485,44 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
       <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 14 }}>et cuida.</span></div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 16 }}>et cuida.</span></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.white }}>{alumna.nom[0]}</div>
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.white }}>{alumna.nom[0]}</div>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
         </div>
       </div>
 
       <div style={{ padding: "20px 16px 80px" }}>
         {loading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
           </div>
         ) : (
           <>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark, lineHeight: 1.1 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: C.oliveDark, lineHeight: 1.1 }}>
                 Hola, <em style={{ fontWeight: 400, color: C.terra }}>{alumna.nom}.</em>
               </div>
-              <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4 }}>Benvinguda a la teva area personal</div>
+              <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginTop: 4 }}>Benvinguda a la teva area personal</div>
             </div>
 
             {pendentsRecup.length > 0 && (
               <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 12, padding: "12px 14px", marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{ fontSize: 18 }}>⚠️</span>
+                <span style={{ fontSize: 20 }}>⚠️</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: C.warn, marginBottom: 3 }}>Tens {pendentsRecup.length} recuperacio{pendentsRecup.length > 1 ? "ns" : ""} pendent{pendentsRecup.length > 1 ? "s" : ""}</div>
-                  <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, lineHeight: 1.4 }}>Caduca: {pendentsRecup[0]?.data_caducitat}</div>
-                  <button style={{ ...btn("warn"), marginTop: 8, fontSize: 11, padding: "5px 12px" }} onClick={() => setTab("calendari")}>Triar hora de recuperacio</button>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: C.warn, marginBottom: 3 }}>Tens {pendentsRecup.length} recuperacio{pendentsRecup.length > 1 ? "ns" : ""} pendent{pendentsRecup.length > 1 ? "s" : ""}</div>
+                  <div style={{ fontSize: 14, color: C.warn, fontWeight: 300, lineHeight: 1.4 }}>Caduca: {pendentsRecup[0]?.data_caducitat}</div>
+                  <button style={{ ...btn("warn"), marginTop: 8, fontSize: 13, padding: "5px 12px" }} onClick={() => setTab("calendari")}>Triar hora de recuperacio</button>
                 </div>
               </div>
             )}
 
             {tab === "inici" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>El teu horari fix</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>El teu horari fix</div>
                 {horaris.length === 0 ? (
                   <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Encara no tens horari assignat. Contacta amb Focus Benestar.</div>
+                    <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>Encara no tens horari assignat. Contacta amb Focus Benestar.</div>
                   </div>
                 ) : (
                   [...horaris].sort((a, b) => {
@@ -546,16 +546,16 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     );
                     return (
                       <div key={h.id} style={{ background: jaCancel·lada ? C.dangerPale : (esPuntual ? C.terraDark : C.oliveDark), borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden", border: jaCancel·lada ? `0.5px solid rgba(160,48,48,0.2)` : "none" }}>
-                        {!jaCancel·lada && <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 90, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>}
-                        <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.4)", marginBottom: 8 }}>
+                        {!jaCancel·lada && <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 92, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>}
+                        <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.4)", marginBottom: 8 }}>
                           {jaCancel·lada ? "Classe cancel.lada" : (esPuntual ? "Classe puntual" : "Proxima classe")}
                         </div>
-                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: jaCancel·lada ? C.danger : C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
-                        <div style={{ fontSize: 13, color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: jaCancel·lada ? 0 : 16 }}>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: jaCancel·lada ? C.danger : C.white, marginBottom: 4 }}>{servei?.nom || "Servei"}</div>
+                        <div style={{ fontSize: 15, color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: jaCancel·lada ? 0 : 16 }}>
                           {dataText} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
                         </div>
                         {!esPuntual && !jaCancel·lada && (
-                          <button style={{ ...btn("terra"), fontSize: 12, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
+                          <button style={{ ...btn("terra"), fontSize: 14, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
                             Cancel.lar aquesta classe
                           </button>
                         )}
@@ -564,7 +564,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   })
                 )}
 
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Properes setmanes</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Properes setmanes</div>
                 {(() => {
                   const avui = new Date(); avui.setHours(0,0,0,0);
                   // Find end of current week (Sunday)
@@ -590,7 +590,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       properes.push({ h, d: new Date(d), dateStr, jaCancel: false, puntual: true });
                     });
                   }
-                  if (properes.length === 0) return <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense classes programades</div>;
+                  if (properes.length === 0) return <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Sense classes programades</div>;
                   return (
                     <div style={card}>
                       {properes.map(({ h, d, dateStr, jaCancel, puntual }, i, arr) => {
@@ -604,14 +604,14 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                         return (
                           <div key={`${h.id}-${dateStr}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", background: esRecuperacio ? C.terraPale : (isAvui ? C.oliveXpale : "transparent"), opacity: jaCancel ? 0.5 : 1 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 8, background: jaCancel ? C.dangerPale : (isAvui ? C.oliveDark : C.olivePale), display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: jaCancel ? C.danger : (isAvui ? C.white : C.oliveDark), lineHeight: 1 }}>{d.getDate()}</div>
-                              <div style={{ fontSize: 8, color: jaCancel ? C.danger : (isAvui ? "rgba(255,255,255,0.6)" : C.soft), textTransform: "uppercase" }}>{mesos[d.getMonth()].slice(0,3)}</div>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: jaCancel ? C.danger : (isAvui ? C.white : C.oliveDark), lineHeight: 1 }}>{d.getDate()}</div>
+                              <div style={{ fontSize: 10, color: jaCancel ? C.danger : (isAvui ? "rgba(255,255,255,0.6)" : C.soft), textTransform: "uppercase" }}>{mesos[d.getMonth()].slice(0,3)}</div>
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: jaCancel ? "line-through" : "none" }}>
-                                {franja?.serveis?.nom || "Classe"} {puntual && <span style={{ fontSize: 10, color: C.terra }}>· Puntual</span>}
+                              <div style={{ fontSize: 15, fontWeight: 500, color: C.dark, textDecoration: jaCancel ? "line-through" : "none" }}>
+                                {franja?.serveis?.nom || "Classe"} {puntual && <span style={{ fontSize: 12, color: C.terra }}>· Puntual</span>}
                               </div>
-                              <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                              <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>
                                 {isAvui ? "Avui" : diesNom[d.getDay() === 0 ? 7 : d.getDay()]} · {franja?.hora_inici?.slice(0,5) || ""}
                               </div>
                             </div>
@@ -619,7 +619,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                               ? <span style={tag("cancel")}>Cancel.lada</span>
                               : esRecuperacio
                               ? <span style={tag("warn")}>Recuperació</span>
-                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 10, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
+                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 12, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
                             }
                           </div>
                         );
@@ -628,30 +628,30 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   );
                 })()}
 
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Ultimes classes</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Ultimes classes</div>
                 <div style={card}>
                   {assistencies.slice(0, 5).map((a, i, arr) => (
                     <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
-                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
+                        <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
                       </div>
                       <span style={tag(a.estat === "confirmada" ? "ok" : a.estat === "cancelada" ? "cancel" : "warn")}>
                         {a.estat === "confirmada" ? "Assistida" : a.estat === "cancelada" ? "Cancel.lada" : "Recuperacio"}
                       </span>
                     </div>
                   ))}
-                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Encara no tens classes registrades</div>}
+                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Encara no tens classes registrades</div>}
                 </div>
               </>
             )}
 
             {tab === "calendari" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 6 }}>
                   {calDiaSeleccionat ? "Hores disponibles" : "Places lliures — propers 30 dies"}
                 </div>
-                <div style={{ fontSize: 12, color: C.mid, fontWeight: 300, marginBottom: 16, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 14, color: C.mid, fontWeight: 300, marginBottom: 16, lineHeight: 1.5 }}>
                   {calDiaSeleccionat
                     ? "Toca una hora per apuntar-te"
                     : pendentsRecup.length > 0
@@ -661,10 +661,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
                 {calDiaSeleccionat ? (
                   <>
-                    <button onClick={() => setCalDiaSeleccionat(null)} style={{ ...btn("secondary"), marginBottom: 12, fontSize: 12 }}>← Tornar al calendari</button>
+                    <button onClick={() => setCalDiaSeleccionat(null)} style={{ ...btn("secondary"), marginBottom: 12, fontSize: 14 }}>← Tornar al calendari</button>
                     {(slotsByDate[calDiaSeleccionat] || []).length === 0 ? (
                       <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
-                        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures aquest dia</div>
+                        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures aquest dia</div>
                       </div>
                     ) : (
                       <div style={card}>
@@ -673,13 +673,13 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                             onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : "canvi"); setCalDiaSeleccionat(null); }}
                             style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer" }}>
                             <div style={{ width: 44, height: 44, borderRadius: 10, background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <div style={{ fontSize: 15, fontWeight: 700, color: C.white, lineHeight: 1 }}>{slot.hora}</div>
+                              <div style={{ fontSize: 17, fontWeight: 700, color: C.white, lineHeight: 1 }}>{slot.hora}</div>
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{slot.servei}</div>
-                              <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{slot.hora} – {slot.hora_fi}</div>
+                              <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{slot.servei}</div>
+                              <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{slot.hora} – {slot.hora_fi}</div>
                             </div>
-                            <span style={{ ...tag("ok"), fontSize: 11 }}>{slot.lliures} {slot.lliures === 1 ? "lloc" : "llocs"}</span>
+                            <span style={{ ...tag("ok"), fontSize: 13 }}>{slot.lliures} {slot.lliures === 1 ? "lloc" : "llocs"}</span>
                           </div>
                         ))}
                       </div>
@@ -687,12 +687,12 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   </>
                 ) : datasDisponibles.length === 0 ? (
                   <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures els propers 30 dies</div>
+                    <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>No hi ha places lliures els propers 30 dies</div>
                   </div>
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 16 }}>
                     {["Dl","Dm","Dc","Dj","Dv","Ds","Dg"].map(d => (
-                      <div key={d} style={{ textAlign: "center", fontSize: 9, color: C.soft, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", paddingBottom: 4 }}>{d}</div>
+                      <div key={d} style={{ textAlign: "center", fontSize: 11, color: C.soft, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", paddingBottom: 4 }}>{d}</div>
                     ))}
                     {(() => {
                       const avui = new Date(); avui.setHours(0,0,0,0);
@@ -709,7 +709,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                         cells.push(
                           <div key={dateStr} onClick={() => teSlots && setCalDiaSeleccionat(dateStr)}
                             style={{ aspectRatio: "1", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: teSlots ? "pointer" : "default", background: isAvui ? C.oliveDark : teSlots ? C.olivePale : "transparent", border: teSlots && !isAvui ? `0.5px solid ${C.border}` : "none", position: "relative" }}>
-                            <span style={{ fontSize: 13, fontWeight: isAvui || teSlots ? 600 : 400, color: isAvui ? C.white : teSlots ? C.oliveDark : C.soft }}>
+                            <span style={{ fontSize: 15, fontWeight: isAvui || teSlots ? 600 : 400, color: isAvui ? C.white : teSlots ? C.oliveDark : C.soft }}>
                               {dCopy.getDate()}
                             </span>
                             {teSlots && <div style={{ width: 4, height: 4, borderRadius: "50%", background: isAvui ? C.terra : C.terra, position: "absolute", bottom: 3 }} />}
@@ -725,23 +725,23 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
             {tab === "historial" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Historial complet</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Historial complet</div>
                 <div style={card}>
                   {assistencies.map((a, i, arr) => (
                     <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: a.estat === "confirmada" ? C.successPale : a.estat === "cancelada" ? C.dangerPale : C.warnPale, flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, background: a.estat === "confirmada" ? C.successPale : a.estat === "cancelada" ? C.dangerPale : C.warnPale, flexShrink: 0 }}>
                         {a.estat === "confirmada" ? "✓" : a.estat === "cancelada" ? "✕" : "↺"}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
-                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{a.classes?.franges?.serveis?.nom || "Classe"}</div>
+                        <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{a.classes?.data || ""}</div>
                       </div>
                       <span style={tag(a.estat === "confirmada" ? "ok" : a.estat === "cancelada" ? "cancel" : "warn")}>
                         {a.estat === "confirmada" ? "Assistida" : a.estat === "cancelada" ? "Cancel.lada" : "Recuperacio"}
                       </span>
                     </div>
                   ))}
-                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense historial encara</div>}
+                  {assistencies.length === 0 && <div style={{ padding: "24px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Sense historial encara</div>}
                 </div>
               </>
             )}
@@ -760,8 +760,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
           return (
             <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
               <item.Icon color={color} />
-              <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
-              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+              <span style={{ fontSize: 11, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 11, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
             </button>
           );
         })}
@@ -772,7 +772,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
           const dataStr = modalCancelar._dataEspecifica || (modalCancelar.franges ? toLocalDateStr(getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici)) : null);
           return dataStr ? formatDataCurta(new Date(dataStr + "T12:00:00")) : "";
         })()} onClose={() => setModalCancelar(null)}>
-          <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.warn, lineHeight: 1.6 }}>
+          <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: C.warn, lineHeight: 1.6 }}>
             Si cancel.les amb mes de 24h d'antelacio, podras recuperar la classe en els propers 30 dies. Si cancel.les amb menys de 24h, la classe es perd.
           </div>
           <Field label="Motiu (opcional)" value={motiu} onChange={setMotiu} placeholder="No em trobo be, feina..." />
@@ -785,7 +785,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
       {confirmacioCancel && (
         <Modal title="Classe cancel.lada" sub={confirmacioCancel.tipusCancelacio === "mes_24h" ? "Tens 30 dies per recuperar-la" : "Menys de 24h - no es pot recuperar"} onClose={() => setConfirmacioCancel(null)}>
-          <div style={{ background: C.successPale, border: `0.5px solid rgba(74,122,90,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: C.success, lineHeight: 1.6 }}>
+          <div style={{ background: C.successPale, border: `0.5px solid rgba(74,122,90,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: C.success, lineHeight: 1.6 }}>
             La teva cancel.lacio s'ha registrat correctament. Vols avisar a {confirmacioCancel.profeNom} per WhatsApp?
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -801,17 +801,17 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
       {modalSlot && (
         <Modal title={slotAction === "recuperacio" ? "Apuntar-me a aquesta classe" : "Sol.licitar canvi d'horari"} sub={`${modalSlot.servei} · ${formatDataCurta(modalSlot.dataObj)} · ${modalSlot.hora}`} onClose={() => setModalSlot(null)}>
-          <div style={{ background: slotAction === "recuperacio" ? C.successPale : C.warnPale, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12, color: slotAction === "recuperacio" ? C.success : C.warn, lineHeight: 1.6 }}>
+          <div style={{ background: slotAction === "recuperacio" ? C.successPale : C.warnPale, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: slotAction === "recuperacio" ? C.success : C.warn, lineHeight: 1.6 }}>
             {slotAction === "recuperacio"
               ? "Aquesta accio confirmara la teva recuperacio directament. No cal esperar confirmacio de Rosario."
               : "S'enviara una sol.licitud a Rosario per canviar el teu horari fix. Ella ho haura d'aprovar."}
           </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-              <button onClick={() => setSlotAction("recuperacio")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "recuperacio" ? C.olive : C.border}`, background: slotAction === "recuperacio" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: slotAction === "recuperacio" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => setSlotAction("recuperacio")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "recuperacio" ? C.olive : C.border}`, background: slotAction === "recuperacio" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: slotAction === "recuperacio" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
                 Recuperar classe{pendentsRecup.length > 0 ? ` (${pendentsRecup.length} pendent)` : ""}
               </button>
-              <button onClick={() => setSlotAction("canvi")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "canvi" ? C.olive : C.border}`, background: slotAction === "canvi" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: slotAction === "canvi" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => setSlotAction("canvi")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "canvi" ? C.olive : C.border}`, background: slotAction === "canvi" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: slotAction === "canvi" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
                 Canviar horari fix
               </button>
             </div>
@@ -842,25 +842,25 @@ function Sidebar({ active, setActive, counts }) {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, width: 220, height: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", zIndex: 100 }}>
       <div style={{ padding: "28px 24px 24px", borderBottom: "0.5px solid rgba(255,255,255,0.08)" }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.white }}>focus</div>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontStyle: "italic", color: "#d9a080", marginTop: 2 }}>et cuida.</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: C.white }}>focus</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontStyle: "italic", color: "#d9a080", marginTop: 2 }}>et cuida.</div>
       </div>
       <nav style={{ flex: 1, padding: "16px 0", overflowY: "auto" }}>
         {items.map(item => (
           <div key={item.key}>
-            {item.section && <div style={{ padding: "6px 16px 4px", fontSize: 9, letterSpacing: "2.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 10 }}>{item.section}</div>}
-            <div onClick={() => setActive(item.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 20px", fontSize: 13, color: active === item.key ? C.white : "rgba(255,255,255,0.55)", cursor: "pointer", background: active === item.key ? "rgba(255,255,255,0.07)" : "transparent", borderLeft: active === item.key ? "2px solid #c17b5a" : "2px solid transparent", transition: "all .15s" }}>
+            {item.section && <div style={{ padding: "6px 16px 4px", fontSize: 11, letterSpacing: "2.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 10 }}>{item.section}</div>}
+            <div onClick={() => setActive(item.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 20px", fontSize: 15, color: active === item.key ? C.white : "rgba(255,255,255,0.55)", cursor: "pointer", background: active === item.key ? "rgba(255,255,255,0.07)" : "transparent", borderLeft: active === item.key ? "2px solid #c17b5a" : "2px solid transparent", transition: "all .15s" }}>
               <span style={{ flex: 1 }}>{item.label}</span>
-              {item.count > 0 && <span style={{ background: C.terra, color: "white", fontSize: 10, fontWeight: 500, padding: "2px 7px", borderRadius: 20 }}>{item.count}</span>}
+              {item.count > 0 && <span style={{ background: C.terra, color: "white", fontSize: 12, fontWeight: 500, padding: "2px 7px", borderRadius: 20 }}>{item.count}</span>}
             </div>
           </div>
         ))}
       </nav>
       <div style={{ padding: "16px 20px", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.white }}>R</div>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.terraDark, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.white }}>R</div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: C.white }}>Rosario</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Administradora</div>
+          <div style={{ fontSize: 15, fontWeight: 500, color: C.white }}>Rosario</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>Administradora</div>
         </div>
       </div>
     </div>
@@ -882,8 +882,8 @@ function BottomNav({ active, setActive, counts }) {
         return (
           <button key={item.key} onClick={() => setActive(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
             <item.Icon color={color} />
-            <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
-            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20, minWidth: 16, textAlign: "center" }}>{item.count}</span>}
+            <span style={{ fontSize: 11, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+            {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: C.terra, color: "white", fontSize: 11, fontWeight: 600, padding: "1px 5px", borderRadius: 20, minWidth: 16, textAlign: "center" }}>{item.count}</span>}
           </button>
         );
       })}
@@ -897,7 +897,7 @@ function VistaAvui({ alumnes, espera, recuperacions, canvis, mobile }) {
     <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
       <div style={{ marginBottom: mobile ? 16 : 24 }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 20 : 22, fontWeight: 700, color: C.oliveDark }}>Bon dia, Rosario.</div>
-        <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4, textTransform: "capitalize" }}>{today}</div>
+        <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginTop: 4, textTransform: "capitalize" }}>{today}</div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4,1fr)", gap: mobile ? 8 : 12, marginBottom: mobile ? 14 : 24 }}>
         {[
@@ -907,24 +907,24 @@ function VistaAvui({ alumnes, espera, recuperacions, canvis, mobile }) {
           { label: "Canvis horari", value: canvis.filter(c => c.estat === "pendent").length, color: C.olive },
         ].map(s => (
           <div key={s.label} style={{ background: s.accent ? C.oliveDark : C.white, borderRadius: 10, padding: mobile ? "12px" : "18px 20px", border: `0.5px solid ${C.border}`, minWidth: 0 }}>
-            <div style={{ fontSize: 8, letterSpacing: "1.5px", textTransform: "uppercase", color: s.accent ? "rgba(255,255,255,0.4)" : C.soft, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: s.accent ? "rgba(255,255,255,0.4)" : C.soft, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 24 : 32, fontWeight: 700, color: s.accent ? C.white : (s.color || C.oliveDark), lineHeight: 1 }}>{s.value}</div>
           </div>
         ))}
       </div>
       <div style={card}>
-        <div style={{ padding: "14px 18px", borderBottom: `0.5px solid ${C.border}`, fontSize: 14, fontWeight: 500, color: C.oliveDark }}>Alumnes recents</div>
+        <div style={{ padding: "14px 18px", borderBottom: `0.5px solid ${C.border}`, fontSize: 16, fontWeight: 500, color: C.oliveDark }}>Alumnes recents</div>
         {alumnes.slice(0, 5).map((a, i, arr) => (
           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
-              <div style={{ fontSize: 11, color: C.soft }}>{a.telefon}</div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
+              <div style={{ fontSize: 13, color: C.soft }}>{a.telefon}</div>
             </div>
             <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
           </div>
         ))}
-        {alumnes.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>Sense alumnes encara</div>}
+        {alumnes.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Sense alumnes encara</div>}
       </div>
     </div>
   );
@@ -1039,42 +1039,42 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span style={tag(alumna.activa ? "ok" : "cancel")}>{alumna.activa ? "Activa" : "Baixa"}</span>
         {alumna.notes && <span style={tag("olive")}>{alumna.notes}</span>}
-        <button style={{ ...btn("secondary"), marginLeft: "auto", padding: "4px 10px", fontSize: 11 }} onClick={() => setEditMode(true)}>✏️ Editar dades</button>
+        <button style={{ ...btn("secondary"), marginLeft: "auto", padding: "4px 10px", fontSize: 13 }} onClick={() => setEditMode(true)}>✏️ Editar dades</button>
       </div>
 
-      <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Horaris fixos ({horaris.length}/3)</div>
+      <div style={{ fontSize: 13, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Horaris fixos ({horaris.length}/3)</div>
 
       {loadingH ? (
-        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic", marginBottom: 12 }}>Carregant...</div>
+        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic", marginBottom: 12 }}>Carregant...</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {horaris.filter(h => h.tipus === "fix" || !h.tipus).map(h => (
             <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.oliveXpale, borderRadius: 9, border: `0.5px solid ${C.border}` }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.oliveDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
-                <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.oliveDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
+                <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>
                   {dies[h.franges?.dia_setmana] || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
                 </div>
               </div>
-              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 11 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
+              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
             </div>
           ))}
           {horaris.filter(h => h.tipus === "puntual").length > 0 && (
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.terra, margin: "10px 0 6px" }}>Classes puntuals</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.terra, margin: "10px 0 6px" }}>Classes puntuals</div>
           )}
           {horaris.filter(h => h.tipus === "puntual").map(h => (
             <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.terraPale, borderRadius: 9, border: `0.5px solid rgba(193,123,90,0.2)` }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.terraDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
-                <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.terraDark }}>{h.franges?.serveis?.nom || "Servei"}</div>
+                <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>
                   {h.data_classe || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
                 </div>
               </div>
               <span style={{ ...tag("warn"), marginRight: 6 }}>Puntual</span>
-              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 11 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
+              <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
             </div>
           ))}
-          {horaris.length === 0 && <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic", padding: "8px 0" }}>Sense horari assignat</div>}
+          {horaris.length === 0 && <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic", padding: "8px 0" }}>Sense horari assignat</div>}
         </div>
       )}
 
@@ -1084,25 +1084,25 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 
       {showAddHorari && (
         <div style={{ background: C.oliveXpale, borderRadius: 10, padding: 14, marginBottom: 16, border: `0.5px solid ${C.border}` }}>
-          <div style={{ fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Tipus de classe</div>
+          <div style={{ fontSize: 13, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Tipus de classe</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-            <button onClick={() => setTipusHorari("fix")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "fix" ? C.olive : C.border}`, background: tipusHorari === "fix" ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: tipusHorari === "fix" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+            <button onClick={() => setTipusHorari("fix")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "fix" ? C.olive : C.border}`, background: tipusHorari === "fix" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: tipusHorari === "fix" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
               Horari fix
             </button>
-            <button onClick={() => setTipusHorari("puntual")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "puntual" ? C.terra : C.border}`, background: tipusHorari === "puntual" ? C.terraPale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: tipusHorari === "puntual" ? C.terraDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+            <button onClick={() => setTipusHorari("puntual")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "puntual" ? C.terra : C.border}`, background: tipusHorari === "puntual" ? C.terraPale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: tipusHorari === "puntual" ? C.terraDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
               Classe puntual
             </button>
           </div>
           {tipusHorari === "puntual" && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data de la classe</div>
+              <div style={{ fontSize: 12, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data de la classe</div>
               <input type="date" value={dataPuntual} onChange={e => setDataPuntual(e.target.value)}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
             </div>
           )}
           <div style={{ marginBottom: 8 }}>
             <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}>
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}>
               <option value="">Selecciona horari...</option>
               {frangesFiltrades.map(f => (
                 <option key={f.id} value={f.id}>
@@ -1153,32 +1153,32 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: mobile ? 16 : 24 }}>
         <div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark }}>Alumnes</div>
-          <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 2 }}>{alumnes.length} registrades</div>
+          <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginTop: 2 }}>{alumnes.length} registrades</div>
         </div>
         <button style={btn("primary")} onClick={() => setShowModal(true)}>+ Nova</button>
       </div>
       <div style={card}>
         <div style={{ padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, background: C.oliveXpale }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca per nom o telefon..."
-            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: "none", color: C.dark, boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: "none", color: C.dark, boxSizing: "border-box" }} />
         </div>
         {filtered.map((a, i) => (
           <div key={a.id} onClick={() => setFichaAlumna(a)} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "12px 16px" : "13px 20px", borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer", transition: "background .15s" }}
             onMouseEnter={e => e.currentTarget.style.background = C.oliveXpale}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>{a.nom[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
-              <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{a.telefon}</div>
-              {a.notes && <div style={{ fontSize: 11, color: C.mid, fontStyle: "italic", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</div>}
+              <div style={{ fontSize: 15, fontWeight: 500, color: C.dark, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nom} {a.cognom}</div>
+              <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{a.telefon}</div>
+              {a.notes && <div style={{ fontSize: 13, color: C.mid, fontStyle: "italic", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</div>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
               <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
-              <span style={{ fontSize: 11, color: C.soft }}>Veure →</span>
+              <span style={{ fontSize: 13, color: C.soft }}>Veure →</span>
             </div>
           </div>
         ))}
-        {filtered.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>{search ? "Cap resultat" : "Sense alumnes encara"}</div>}
+        {filtered.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>{search ? "Cap resultat" : "Sense alumnes encara"}</div>}
       </div>
 
       {fichaAlumna && <FichaAlumna alumna={fichaAlumna} onClose={() => setFichaAlumna(null)} onRefresh={onRefresh} />}
@@ -1227,7 +1227,7 @@ function VistaEspera({ espera, onRefresh, mobile }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: mobile ? 16 : 24 }}>
         <div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark }}>Llista d'espera</div>
-          <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 2 }}>{actives.length} persones esperant</div>
+          <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginTop: 2 }}>{actives.length} persones esperant</div>
         </div>
         <button style={btn("primary")} onClick={() => setShowModal(true)}>+ Afegir</button>
       </div>
@@ -1235,21 +1235,21 @@ function VistaEspera({ espera, onRefresh, mobile }) {
         {actives.map((e, i) => (
           <div key={e.id} style={{ padding: mobile ? "12px 16px" : "14px 20px", borderBottom: i < actives.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: i < 3 ? C.oliveDark : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, color: i < 3 ? C.white : C.oliveDark, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: i < 3 ? C.oliveDark : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 500, color: i < 3 ? C.white : C.oliveDark, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{e.nom} {e.cognom}</div>
-                <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{e.telefon}{e.preferencia_horaria ? " · " + e.preferencia_horaria : ""}</div>
-                {e.notes && <div style={{ fontSize: 11, color: C.mid, fontStyle: "italic", marginTop: 2 }}>{e.notes}</div>}
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{e.nom} {e.cognom}</div>
+                <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{e.telefon}{e.preferencia_horaria ? " · " + e.preferencia_horaria : ""}</div>
+                {e.notes && <div style={{ fontSize: 13, color: C.mid, fontStyle: "italic", marginTop: 2 }}>{e.notes}</div>}
               </div>
               <span style={tag(e.estat === "avisada" ? "warn" : "olive")}>{e.estat === "avisada" ? "Avisada" : "Esperant"}</span>
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 10, marginLeft: 38 }}>
-              {e.estat === "esperant" && <button style={{ ...btn("warn"), fontSize: 11, padding: "5px 12px" }} onClick={() => handleEstat(e.id, "avisada")}>Avisar</button>}
-              <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => handleEstat(e.id, "descartada")}>Treure</button>
+              {e.estat === "esperant" && <button style={{ ...btn("warn"), fontSize: 13, padding: "5px 12px" }} onClick={() => handleEstat(e.id, "avisada")}>Avisar</button>}
+              <button style={{ ...btn("danger"), fontSize: 13, padding: "5px 12px" }} onClick={() => handleEstat(e.id, "descartada")}>Treure</button>
             </div>
           </div>
         ))}
-        {actives.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>La llista d'espera esta buida</div>}
+        {actives.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>La llista d'espera esta buida</div>}
       </div>
       {showModal && (
         <Modal title="Afegir a la llista" sub="Persona que espera placa al centre" onClose={() => setShowModal(false)}>
@@ -1342,42 +1342,42 @@ function VistaCalendari({ mobile }) {
     return (
       <div style={{ padding: mobile ? "0 0 80px" : "0 0 80px" }}>
         <div style={{ background: C.oliveDark, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => setDiaSeleccionat(null)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#faf8f4", fontSize: 13, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => setDiaSeleccionat(null)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#faf8f4", fontSize: 15, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
             ← Setmana
           </button>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: C.white }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.white }}>
             {diesComplets[diaSeleccionat]} {dataObj.getDate()} de {mesos[dataObj.getMonth()]}
           </div>
         </div>
         <div style={{ padding: "16px 16px 0" }}>
           {classes.length === 0 ? (
-            <div style={{ ...{background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 14}, padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>
+            <div style={{ ...{background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 14}, padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>
               Cap classe programada
             </div>
           ) : classes.map(cl => (
             <div key={cl.id} style={{ background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, overflow: "hidden", marginBottom: 12, opacity: cl.bloquejada ? 0.5 : 1 }}>
               <div style={{ background: cl.bloquejada ? C.dangerPale : (profeColors[cl.professores?.nom || "?"] || C.oliveDark), padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{cl.hora_inici?.slice(0,5)} – {cl.hora_fi?.slice(0,5)}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>{cl.serveis?.nom} · {cl.professores?.nom}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}>{cl.hora_inici?.slice(0,5)} – {cl.hora_fi?.slice(0,5)}</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>{cl.serveis?.nom} · {cl.professores?.nom}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   {cl.bloquejada
-                    ? <span style={{ fontSize: 10, background: "rgba(255,255,255,0.2)", color: C.white, padding: "2px 8px", borderRadius: 20 }}>Bloquejada</span>
-                    : <span style={{ fontSize: 11, fontWeight: 600, color: C.white }}>{cl.alumnes.length}/{cl.tipus_classe === "individual" ? 1 : 3}</span>
+                    ? <span style={{ fontSize: 12, background: "rgba(255,255,255,0.2)", color: C.white, padding: "2px 8px", borderRadius: 20 }}>Bloquejada</span>
+                    : <span style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{cl.alumnes.length}/{cl.tipus_classe === "individual" ? 1 : 3}</span>
                   }
                 </div>
               </div>
               {!cl.bloquejada && cl.alumnes.map((h, i, arr) => (
                 <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 12, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>
                     {h.alumnes?.nom?.[0] || "?"}
                   </div>
-                  <div style={{ fontSize: 13, color: C.dark }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                  <div style={{ fontSize: 15, color: C.dark }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
                 </div>
               ))}
               {!cl.bloquejada && cl.alumnes.length === 0 && (
-                <div style={{ padding: "10px 14px", fontSize: 12, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
+                <div style={{ padding: "10px 14px", fontSize: 14, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
               )}
             </div>
           ))}
@@ -1390,20 +1390,20 @@ function VistaCalendari({ mobile }) {
     <div style={{ padding: mobile ? "0 0 80px" : "0 0 80px" }}>
       {/* Week header */}
       <div style={{ background: C.oliveDark, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button onClick={() => setSetmanaOffset(s => s - 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+        <button onClick={() => setSetmanaOffset(s => s - 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.white }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: C.white }}>
             {setmana[0].getDate()} {mesos[setmana[0].getMonth()]} – {setmana[4].getDate()} {mesos[setmana[4].getMonth()]}
           </div>
-          {setmanaOffset === 0 && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>Aquesta setmana</div>}
-          {setmanaOffset !== 0 && <button onClick={() => setSetmanaOffset(0)} style={{ fontSize: 10, color: C.terra, background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Tornar a avui</button>}
+          {setmanaOffset === 0 && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>Aquesta setmana</div>}
+          {setmanaOffset !== 0 && <button onClick={() => setSetmanaOffset(0)} style={{ fontSize: 12, color: C.terra, background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Tornar a avui</button>}
         </div>
-        <button onClick={() => setSetmanaOffset(s => s + 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+        <button onClick={() => setSetmanaOffset(s => s + 1)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#faf8f4", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
       </div>
 
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -1415,8 +1415,8 @@ function VistaCalendari({ mobile }) {
               return (
                 <button key={i} onClick={() => setDiaSeleccionat(i)}
                   style={{ background: isAvui ? C.oliveDark : C.oliveXpale, borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}`, padding: "8px 4px", textAlign: "center", cursor: "pointer", border: "none", borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}` }}>
-                  <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1px", color: isAvui ? "rgba(255,255,255,0.6)" : C.soft, fontFamily: "'DM Sans', sans-serif" }}>{dies[i]}</div>
-                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: isAvui ? C.white : C.oliveDark, marginTop: 1 }}>{d.getDate()}</div>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: isAvui ? "rgba(255,255,255,0.6)" : C.soft, fontFamily: "'DM Sans', sans-serif" }}>{dies[i]}</div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: isAvui ? C.white : C.oliveDark, marginTop: 1 }}>{d.getDate()}</div>
                 </button>
               );
             })}
@@ -1427,7 +1427,7 @@ function VistaCalendari({ mobile }) {
               const horaStr = `${hora.toString().padStart(2,"0")}:00`;
               return [
                 <div key={`time-${hora}`} style={{ background: C.oliveXpale, borderBottom: `0.5px solid ${C.border}`, padding: "4px 6px", display: "flex", alignItems: "flex-start", justifyContent: "flex-end" }}>
-                  <span style={{ fontSize: 9, color: C.soft, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{horaStr}</span>
+                  <span style={{ fontSize: 11, color: C.soft, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{horaStr}</span>
                 </div>,
                 ...setmana.map((dataObj, diaIdx) => {
                   const diaNum = diaIdx + 1;
@@ -1447,10 +1447,10 @@ function VistaCalendari({ mobile }) {
                         const durada = cl.hora_fi ? parseInt(cl.hora_fi.slice(0,2)) - parseInt(cl.hora_inici?.slice(0,2) || "0") : 1;
                         return (
                           <div key={cl.id} style={{ position: "absolute", top: 2, left: 2, right: 2, background: color, borderRadius: 6, padding: "3px 5px", overflow: "hidden", minHeight: 38 * durada - 6 }}>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: C.white, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: C.white, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {cl.hora_inici?.slice(0,5)} {cl.serveis?.nom?.replace("Pilates ", "").slice(0,3) || ""}
                             </div>
-                            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
+                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
                               {bloq ? "Bloq." : `${alumnesCl.length}/${cl.tipus_classe === "individual" ? 1 : 3}`}
                             </div>
                           </div>
@@ -1470,7 +1470,7 @@ function VistaCalendari({ mobile }) {
         {Object.entries(profeColors).map(([nom, color]) => (
           <div key={nom} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: 10, color: C.soft, fontFamily: "'DM Sans', sans-serif" }}>{nom}</span>
+            <span style={{ fontSize: 12, color: C.soft, fontFamily: "'DM Sans', sans-serif" }}>{nom}</span>
           </div>
         ))}
       </div>
@@ -1543,7 +1543,7 @@ function VistaFranges({ mobile }) {
     grouped[f.dia_setmana].push(f);
   });
 
-  const selectStyle = { padding: "6px 8px", borderRadius: 7, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", cursor: "pointer" };
+  const selectStyle = { padding: "6px 8px", borderRadius: 7, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", cursor: "pointer" };
 
   return (
     <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
@@ -1551,44 +1551,44 @@ function VistaFranges({ mobile }) {
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark }}>Franges horaries</div>
         <button style={btn("primary")} onClick={() => setShowNova(true)}>+ Nova franja</button>
       </div>
-      <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Gestiona les franges horaries del centre</div>
+      <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Gestiona les franges horaries del centre</div>
 
       {showNova && (
         <Modal title="Nova franja horaria" sub="Afegeix una nova classe al calendari" onClose={() => setShowNova(false)}>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Dia de la setmana</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Dia de la setmana</div>
             <select value={novaForm.dia_setmana} onChange={e => setNovaForm({...novaForm, dia_setmana: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
               {dies.slice(1).map((d, i) => <option key={i+1} value={i+1}>{d}</option>)}
             </select>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora inici</div>
+              <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora inici</div>
               <input type="time" value={novaForm.hora_inici} onChange={e => setNovaForm({...novaForm, hora_inici: e.target.value})} style={{ ...selectStyle, width: "100%", boxSizing: "border-box" }} />
             </div>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora fi</div>
+              <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Hora fi</div>
               <input type="time" value={novaForm.hora_fi} onChange={e => setNovaForm({...novaForm, hora_fi: e.target.value})} style={{ ...selectStyle, width: "100%", boxSizing: "border-box" }} />
             </div>
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Professora</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Professora</div>
             <select value={novaForm.professora_id} onChange={e => setNovaForm({...novaForm, professora_id: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
               <option value="">Sense professora</option>
               {professores.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Servei</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Servei</div>
             <select value={novaForm.servei_id} onChange={e => setNovaForm({...novaForm, servei_id: e.target.value})} style={{ ...selectStyle, width: "100%" }}>
               {serveis.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Tipus</div>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Tipus</div>
             <div style={{ display: "flex", gap: 8 }}>
               {["grupal", "individual"].map(t => (
-                <button key={t} onClick={() => setNovaForm({...novaForm, tipus_classe: t})} style={{ flex: 1, padding: "8px", borderRadius: 9, border: `1.5px solid ${novaForm.tipus_classe === t ? C.olive : C.border}`, background: novaForm.tipus_classe === t ? C.olivePale : C.white, fontSize: 12, fontWeight: 500, cursor: "pointer", color: novaForm.tipus_classe === t ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                <button key={t} onClick={() => setNovaForm({...novaForm, tipus_classe: t})} style={{ flex: 1, padding: "8px", borderRadius: 9, border: `1.5px solid ${novaForm.tipus_classe === t ? C.olive : C.border}`, background: novaForm.tipus_classe === t ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: novaForm.tipus_classe === t ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
                   {t === "grupal" ? "Grupal (3 llocs)" : "Individual (1 lloc)"}
                 </button>
               ))}
@@ -1602,36 +1602,36 @@ function VistaFranges({ mobile }) {
       )}
 
       {loading ? (
-        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
       ) : (
         Object.keys(grouped).sort().map(dia => (
           <div key={dia} style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.oliveDark, marginBottom: 8 }}>{dies[dia]}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: C.oliveDark, marginBottom: 8 }}>{dies[dia]}</div>
             <div style={card}>
               {grouped[dia].map((f, i, arr) => (
                 <div key={f.id} style={{ padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                      <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
                       {editant === f.id ? (
                         <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
                           <select defaultValue={f.professora_id || ""} onChange={e => updateProfe(f.id, e.target.value)} style={{ ...selectStyle, flex: 1 }}>
                             <option value="">Sense professora</option>
                             {professores.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
                           </select>
-                          <button style={{ ...btn("secondary"), fontSize: 11, padding: "4px 8px" }} onClick={() => setEditant(null)}>Cancel</button>
+                          <button style={{ ...btn("secondary"), fontSize: 13, padding: "4px 8px" }} onClick={() => setEditant(null)}>Cancel</button>
                         </div>
                       ) : (
-                        <div style={{ fontSize: 11, color: C.soft, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ fontSize: 13, color: C.soft, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
                           {f.professores?.nom || "Sense professora"}
-                          <button onClick={() => setEditant(f.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: C.terra, fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Canviar</button>
+                          <button onClick={() => setEditant(f.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: C.terra, fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Canviar</button>
                         </div>
                       )}
                     </div>
-                    <button onClick={() => toggleTipus(f)} style={{ padding: "5px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 10, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", background: f.tipus_classe === "individual" ? C.terraPale : C.successPale, color: f.tipus_classe === "individual" ? C.terraDark : C.success, flexShrink: 0 }}>
+                    <button onClick={() => toggleTipus(f)} style={{ padding: "5px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", background: f.tipus_classe === "individual" ? C.terraPale : C.successPale, color: f.tipus_classe === "individual" ? C.terraDark : C.success, flexShrink: 0 }}>
                       {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
                     </button>
-                    <button onClick={() => desactivarFranja(f)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.soft, padding: "0 4px", flexShrink: 0 }} title="Eliminar franja">×</button>
+                    <button onClick={() => desactivarFranja(f)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.soft, padding: "0 4px", flexShrink: 0 }} title="Eliminar franja">×</button>
                   </div>
                 </div>
               ))}
@@ -1676,7 +1676,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   return (
     <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
       <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>Recuperacions i Canvis</div>
-      <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Sol.licituds pendents de les alumnes</div>
+      <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Sol.licituds pendents de les alumnes</div>
       <div style={{ display: "flex", gap: 0, background: C.white, borderRadius: 12, border: `0.5px solid ${C.border}`, padding: 4, marginBottom: 16, overflowX: "auto" }}>
         {[{ key: "recuperacions", label: "Recuperacions (" + pendR.length + ")" }, { key: "canvis", label: "Canvis (" + pendC.length + ")" }, { key: "historial", label: "Historial" }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: "7px 10px", borderRadius: 9, fontSize: mobile ? 11 : 13, fontWeight: 500, cursor: "pointer", border: "none", fontFamily: "'DM Sans', sans-serif", background: tab === t.key ? C.oliveDark : "transparent", color: tab === t.key ? C.white : C.soft, whiteSpace: "nowrap", transition: "all .15s" }}>{t.label}</button>
@@ -1684,7 +1684,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       </div>
       {tab === "recuperacions" && (
         <div style={card}>
-          {pendR.length === 0 && recentsR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
+          {pendR.length === 0 && recentsR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
           {recentsR.map((r, i) => {
             const nomComplet = r.alumnes ? `${r.alumnes.nom} ${r.alumnes.cognom}` : "Alumna";
             const esAprovada = aprovats[r.id] === "aprovada";
@@ -1695,17 +1695,17 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
             return (
             <div key={r.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: `0.5px solid ${C.border}`, background: esAprovada ? C.successPale : C.dangerPale }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag(esAprovada ? "ok" : "cancel")}>{esAprovada ? "Aprovada" : "Rebutjada"}</span>
               </div>
-              {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Data: {r.data_proposta_alumna}</div>}
+              {r.data_proposta_alumna && <div style={{ fontSize: 14, color: C.soft, marginBottom: 10 }}>Data: {r.data_proposta_alumna}</div>}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {waLink && (
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 13, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                     💬 Enviar avis per WhatsApp
                   </a>
                 )}
-                <button style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px" }} onClick={() => tancar(r.id)}>Tancar</button>
+                <button style={{ ...btn("secondary"), fontSize: 13, padding: "5px 12px" }} onClick={() => tancar(r.id)}>Tancar</button>
               </div>
             </div>
             );
@@ -1715,13 +1715,13 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
             return (
             <div key={r.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendR.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag("warn")}>Pendent</span>
               </div>
-              {r.data_proposta_alumna && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Proposta: {r.data_proposta_alumna}{r.data_caducitat ? " · Caduca: " + r.data_caducitat : ""}</div>}
+              {r.data_proposta_alumna && <div style={{ fontSize: 14, color: C.soft, marginBottom: 10 }}>Proposta: {r.data_proposta_alumna}{r.data_caducitat ? " · Caduca: " + r.data_caducitat : ""}</div>}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("recuperacions", r.id)}>Aprovar</button>
-                <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("recuperacions", r.id)}>Rebutjar</button>
+                <button style={{ ...btn("success"), fontSize: 13, padding: "5px 12px" }} onClick={() => aprovar("recuperacions", r.id)}>Aprovar</button>
+                <button style={{ ...btn("danger"), fontSize: 13, padding: "5px 12px" }} onClick={() => rebutjar("recuperacions", r.id)}>Rebutjar</button>
               </div>
             </div>
             );
@@ -1730,7 +1730,7 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       )}
       {tab === "canvis" && (
         <div style={card}>
-          {pendC.length === 0 && recentsC.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>No hi ha canvis pendents</div>}
+          {pendC.length === 0 && recentsC.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>No hi ha canvis pendents</div>}
           {recentsC.map((c, i) => {
             const nomComplet = c.alumnes ? `${c.alumnes.nom} ${c.alumnes.cognom}` : "Alumna";
             const horariText = c.franges ? `${dies[c.franges.dia_setmana]} ${c.franges.hora_inici?.slice(0,5)}` : "";
@@ -1742,17 +1742,17 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
             return (
             <div key={c.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: `0.5px solid ${C.border}`, background: esAprovada ? C.successPale : C.dangerPale }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag(esAprovada ? "ok" : "cancel")}>{esAprovada ? "Aprovada" : "Rebutjada"}</span>
               </div>
-              {horariText && <div style={{ fontSize: 12, color: C.soft, marginBottom: 10 }}>Horari: {horariText}</div>}
+              {horariText && <div style={{ fontSize: 14, color: C.soft, marginBottom: 10 }}>Horari: {horariText}</div>}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {waLink && (
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 11, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ ...btn(esAprovada ? "success" : "danger"), fontSize: 13, padding: "5px 12px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                     💬 Enviar avis per WhatsApp
                   </a>
                 )}
-                <button style={{ ...btn("secondary"), fontSize: 11, padding: "5px 12px" }} onClick={() => tancar(c.id)}>Tancar</button>
+                <button style={{ ...btn("secondary"), fontSize: 13, padding: "5px 12px" }} onClick={() => tancar(c.id)}>Tancar</button>
               </div>
             </div>
             );
@@ -1763,14 +1763,14 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
             return (
             <div key={c.id} style={{ padding: mobile ? "12px 16px" : "16px 20px", borderBottom: i < pendC.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
                 <span style={tag("warn")}>Pendent</span>
               </div>
-              {horariText && <div style={{ fontSize: 12, color: C.soft, marginBottom: 4 }}>Sol.licita: {horariText}</div>}
-              {c.nota_alumna && <div style={{ fontSize: 12, color: C.mid, marginBottom: 10, fontStyle: "italic" }}>{c.nota_alumna}</div>}
+              {horariText && <div style={{ fontSize: 14, color: C.soft, marginBottom: 4 }}>Sol.licita: {horariText}</div>}
+              {c.nota_alumna && <div style={{ fontSize: 14, color: C.mid, marginBottom: 10, fontStyle: "italic" }}>{c.nota_alumna}</div>}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button style={{ ...btn("success"), fontSize: 11, padding: "5px 12px" }} onClick={() => aprovar("canvis_horari", c.id)}>Aprovar</button>
-                <button style={{ ...btn("danger"), fontSize: 11, padding: "5px 12px" }} onClick={() => rebutjar("canvis_horari", c.id)}>Rebutjar</button>
+                <button style={{ ...btn("success"), fontSize: 13, padding: "5px 12px" }} onClick={() => aprovar("canvis_horari", c.id)}>Aprovar</button>
+                <button style={{ ...btn("danger"), fontSize: 13, padding: "5px 12px" }} onClick={() => rebutjar("canvis_horari", c.id)}>Rebutjar</button>
               </div>
             </div>
             );
@@ -1780,12 +1780,12 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       {tab === "historial" && (
         <div style={card}>
           {[...recuperacions.filter(r => r.estat !== "pendent"), ...canvis.filter(c => c.estat !== "pendent")].length === 0
-            ? <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 13, fontStyle: "italic" }}>L'historial es buit</div>
+            ? <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>L'historial es buit</div>
             : [...recuperacions.filter(r => r.estat !== "pendent"), ...canvis.filter(c => c.estat !== "pendent")].map((item, i, arr) => (
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{"data_proposta_alumna" in item ? "Recuperacio" : "Canvi d'horari"}</div>
-                  <div style={{ fontSize: 11, color: C.soft, marginTop: 1 }}>{new Date(item.created_at).toLocaleDateString("ca-ES")}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{"data_proposta_alumna" in item ? "Recuperacio" : "Canvi d'horari"}</div>
+                  <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{new Date(item.created_at).toLocaleDateString("ca-ES")}</div>
                 </div>
                 <span style={tag(item.estat === "aprovada" ? "ok" : "cancel")}>{item.estat.charAt(0).toUpperCase() + item.estat.slice(1)}</span>
               </div>
@@ -1834,10 +1834,10 @@ function PanelRosario() {
       {mobile ? (
         <>
           <div style={{ background: C.oliveDark, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 14 }}>et cuida.</span></div>
-            <button onClick={fetchAll} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: C.white, fontSize: 18 }}>↻</button>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 16 }}>et cuida.</span></div>
+            <button onClick={fetchAll} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: C.white, fontSize: 20 }}>↻</button>
           </div>
-          {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
+          {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
             <>
               {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile />}
               {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile />}
@@ -1855,12 +1855,12 @@ function PanelRosario() {
           <main style={{ marginLeft: 220, minHeight: "100vh" }}>
             <div style={{ background: C.white, borderBottom: `0.5px solid ${C.border}`, padding: "0 32px", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
               <div>
-                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark }}>focus benestar</div>
-                <div style={{ fontSize: 12, color: C.soft, fontWeight: 300 }}>Panel d'administracio · Rosario</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark }}>focus benestar</div>
+                <div style={{ fontSize: 14, color: C.soft, fontWeight: 300 }}>Panel d'administracio · Rosario</div>
               </div>
               <button style={btn("primary")} onClick={fetchAll}>Actualitzar</button>
             </div>
-            {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
+            {loading ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}><div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: C.soft, fontStyle: "italic" }}>Carregant...</div></div> : (
               <>
                 {active === "avui" && <VistaAvui alumnes={alumnes} espera={espera} recuperacions={recuperacions} canvis={canvis} mobile={false} />}
                 {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
@@ -1898,18 +1898,18 @@ function LoginProfessora({ onLogin }) {
 
   return (
     <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 202, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
       <div style={{ width: "100%", maxWidth: 340, position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white }}>focus</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>et cuida.</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 700, color: C.white }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>et cuida.</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 6 }}>Acces professores</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24 }}>Introdueix el teu PIN personal</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.white, marginBottom: 6 }}>Acces professores</div>
+          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", fontWeight: 300, marginBottom: 24 }}>Introdueix el teu PIN personal</div>
           <Field label="PIN" value={pin} onChange={v => { setPin(v); setError(""); }} placeholder="••••" type="password" />
-          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
-          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 14, borderRadius: 10, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 14, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+          <button onClick={handleLogin} disabled={loading} style={{ ...btn("terra"), width: "100%", padding: 13, fontSize: 16, borderRadius: 10, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Comprovant..." : "Entrar"}
           </button>
         </div>
@@ -2078,45 +2078,45 @@ function PanelProfessora({ professora, onLogout }) {
 
       <div style={{ background: C.oliveDark, padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 13 }}>et cuida.</span></div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white }}>focus <span style={{ fontStyle: "italic", fontWeight: 400, color: "#d9a080", fontSize: 15 }}>et cuida.</span></div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{professora.nom}</div>
+          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.7)" }}>{professora.nom}</div>
           {notificacions.length > 0 && (
-            <div style={{ background: C.terra, color: "white", fontSize: 10, fontWeight: 700, width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{notificacions.length}</div>
+            <div style={{ background: C.terra, color: "white", fontSize: 12, fontWeight: 700, width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{notificacions.length}</div>
           )}
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Sortir</button>
         </div>
       </div>
 
       <div style={{ padding: "16px 16px 80px" }}>
         {loading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
           </div>
         ) : (
           <>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.oliveDark }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark }}>
                 Bon dia, <em style={{ color: C.terra, fontWeight: 400 }}>{professora.nom}.</em>
               </div>
-              <div style={{ fontSize: 12, color: C.soft, fontWeight: 300, marginTop: 4 }}>
+              <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginTop: 4 }}>
                 {new Date().toLocaleDateString("ca-ES", { weekday: "long", day: "numeric", month: "long" })}
               </div>
             </div>
 
             {notificacions.length > 0 && tab === "setmana" && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.terra, marginBottom: 8 }}>Notificacions pendents</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.terra, marginBottom: 8 }}>Notificacions pendents</div>
                 {notificacions.map(n => (
                   <div key={n.id} style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 10 }}>
-                    <span style={{ fontSize: 16 }}>🔔</span>
+                    <span style={{ fontSize: 18 }}>🔔</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.warn }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
-                      <div style={{ fontSize: 12, color: C.warn, fontWeight: 300, marginTop: 2 }}>{n.missatge}</div>
-                      <div style={{ fontSize: 10, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
+                      <div style={{ fontSize: 15, fontWeight: 500, color: C.warn }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
+                      <div style={{ fontSize: 14, color: C.warn, fontWeight: 300, marginTop: 2 }}>{n.missatge}</div>
+                      <div style={{ fontSize: 12, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
                     </div>
-                    <button style={{ ...btn("secondary"), fontSize: 10, padding: "3px 8px", flexShrink: 0 }} onClick={() => marcarLlegida(n.id)}>✓ Llegida</button>
+                    <button style={{ ...btn("secondary"), fontSize: 12, padding: "3px 8px", flexShrink: 0 }} onClick={() => marcarLlegida(n.id)}>✓ Llegida</button>
                   </div>
                 ))}
               </div>
@@ -2130,31 +2130,31 @@ function PanelProfessora({ professora, onLogout }) {
                 <>
                   {/* Week navigator */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, background: C.oliveDark, borderRadius: 10, padding: "8px 12px" }}>
-                    <button onClick={() => { setSetmanaOffset(o => o - 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 16, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-                    <div style={{ flex: 1, textAlign: "center", fontSize: 12, color: C.white, fontWeight: 500 }}>
+                    <button onClick={() => { setSetmanaOffset(o => o - 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 18, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                    <div style={{ flex: 1, textAlign: "center", fontSize: 14, color: C.white, fontWeight: 500 }}>
                       {setmanaOffset === 0 ? "Aquesta setmana" : setmanaOffset === 1 ? "Setmana que ve" : setmanaOffset === -1 ? "Setmana passada" : `Setmana ${setmanaOffset > 0 ? "+" : ""}${setmanaOffset}`}
                     </div>
-                    <button onClick={() => { setSetmanaOffset(o => o + 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 16, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+                    <button onClick={() => { setSetmanaOffset(o => o + 1); setDiaIdx(0); }} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.1)", cursor: "pointer", fontSize: 18, color: C.white, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
                   </div>
 
                   {/* Day navigator */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, background: C.white, borderRadius: 14, padding: "10px 12px", border: `0.5px solid ${C.border}` }}>
                     <button onClick={() => setDiaIdx(i => Math.max(0, i - 1))} disabled={diaIdx === 0}
-                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx === 0 ? C.oliveXpale : C.white, cursor: diaIdx === 0 ? "default" : "pointer", fontSize: 18, color: diaIdx === 0 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>‹</button>
+                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx === 0 ? C.oliveXpale : C.white, cursor: diaIdx === 0 ? "default" : "pointer", fontSize: 20, color: diaIdx === 0 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>‹</button>
                     <div style={{ flex: 1, textAlign: "center" }}>
                       {diesDisponibles.length === 0 ? (
-                        <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense classes aquesta setmana</div>
+                        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>Sense classes aquesta setmana</div>
                       ) : diaActual ? (
                         <>
-                          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: diaActual.dia === diaSemanaAvui ? C.terra : C.oliveDark }}>
+                          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: diaActual.dia === diaSemanaAvui ? C.terra : C.oliveDark }}>
                             {dies[diaActual.dia]} {diaActual.dataObj.getDate()} de {mesos[diaActual.dataObj.getMonth()+1]}
                           </div>
-                          {diaActual.dia === diaSemanaAvui && <div style={{ fontSize: 10, color: C.terra, marginTop: 2 }}>Avui</div>}
+                          {diaActual.dia === diaSemanaAvui && <div style={{ fontSize: 12, color: C.terra, marginTop: 2 }}>Avui</div>}
                         </>
                       ) : null}
                     </div>
                     <button onClick={() => setDiaIdx(i => Math.min(diesDisponibles.length - 1, i + 1))} disabled={diaIdx >= diesDisponibles.length - 1}
-                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx >= diesDisponibles.length - 1 ? C.oliveXpale : C.white, cursor: diaIdx >= diesDisponibles.length - 1 ? "default" : "pointer", fontSize: 18, color: diaIdx >= diesDisponibles.length - 1 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>›</button>
+                      style={{ width: 34, height: 34, borderRadius: 8, border: `0.5px solid ${C.border}`, background: diaIdx >= diesDisponibles.length - 1 ? C.oliveXpale : C.white, cursor: diaIdx >= diesDisponibles.length - 1 ? "default" : "pointer", fontSize: 20, color: diaIdx >= diesDisponibles.length - 1 ? C.soft : C.oliveDark, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>›</button>
                   </div>
 
                   {/* Day dots navigator */}
@@ -2169,48 +2169,48 @@ function PanelProfessora({ professora, onLogout }) {
                     <div key={f.id} style={{ ...card, marginBottom: 8 }}>
                       <div style={{ padding: "12px 16px", borderBottom: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
-                          <div style={{ fontSize: 12, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
+                          <div style={{ fontSize: 16, fontWeight: 500, color: C.oliveDark }}>{f.serveis?.nom}</div>
+                          <div style={{ fontSize: 14, color: C.soft, marginTop: 2 }}>{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)}</div>
                         </div>
                         <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length + (f.recuperacions?.length || 0)} alumnes</div>
-                          {f.cancelades.length > 0 && <div style={{ fontSize: 11, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
-                          {(f.recuperacions?.length || 0) > 0 && <div style={{ fontSize: 11, color: C.terra }}>{f.recuperacions.length} recuperació{f.recuperacions.length > 1 ? "ns" : ""}</div>}
-                          <button style={{ ...btn("danger"), fontSize: 10, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, diaActual.dataStr)}>Bloquejar</button>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: C.oliveDark }}>{f.alumnes.length - f.cancelades.length + (f.recuperacions?.length || 0)} alumnes</div>
+                          {f.cancelades.length > 0 && <div style={{ fontSize: 13, color: C.danger }}>{f.cancelades.length} cancel·lació{f.cancelades.length > 1 ? "ns" : ""}</div>}
+                          {(f.recuperacions?.length || 0) > 0 && <div style={{ fontSize: 13, color: C.terra }}>{f.recuperacions.length} recuperació{f.recuperacions.length > 1 ? "ns" : ""}</div>}
+                          <button style={{ ...btn("danger"), fontSize: 12, padding: "3px 8px" }} onClick={() => handleBloquejar(f.id, diaActual.dataStr)}>Bloquejar</button>
                         </div>
                       </div>
                       {f.alumnes.map((h) => {
                         const cancelada = f.cancelades.some(c => c.alumna_id === h.alumna_id);
                         return (
                           <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, opacity: cancelada ? 0.4 : 1 }}>
-                            <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
                               {h.alumnes?.nom?.[0] || "?"}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
-                              {cancelada && <div style={{ fontSize: 11, color: C.danger }}>Ha cancel·lat</div>}
+                              <div style={{ fontSize: 15, fontWeight: 500, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                              {cancelada && <div style={{ fontSize: 13, color: C.danger }}>Ha cancel·lat</div>}
                             </div>
                           </div>
                         );
                       })}
                       {(f.recuperacions || []).map((r, i) => (
                         <div key={`recup-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `0.5px solid ${C.border}`, background: C.terraPale }}>
-                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraPale, border: `1.5px solid ${C.terra}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: C.terraDark, flexShrink: 0 }}>
+                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.terraPale, border: `1.5px solid ${C.terra}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: C.terraDark, flexShrink: 0 }}>
                             {r.alumnes?.nom?.[0] || "↺"}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: C.terraDark }}>{r.alumnes?.nom} {r.alumnes?.cognom}</div>
-                            <div style={{ fontSize: 11, color: C.terra }}>Recuperació</div>
+                            <div style={{ fontSize: 15, fontWeight: 500, color: C.terraDark }}>{r.alumnes?.nom} {r.alumnes?.cognom}</div>
+                            <div style={{ fontSize: 13, color: C.terra }}>Recuperació</div>
                           </div>
                         </div>
                       ))}
                       {f.alumnes.length === 0 && (f.recuperacions?.length || 0) === 0 && (
-                        <div style={{ padding: "12px 16px", fontSize: 13, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
+                        <div style={{ padding: "12px 16px", fontSize: 15, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
                       )}
                     </div>
                   )) : (
                     <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
-                      <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens classes assignades aquesta setmana</div>
+                      <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>No tens classes assignades aquesta setmana</div>
                     </div>
                   )}
                 </>
@@ -2221,23 +2221,23 @@ function PanelProfessora({ professora, onLogout }) {
 
             {tab === "notificacions" && (
               <>
-                <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Totes les notificacions</div>
+                <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, marginBottom: 12 }}>Totes les notificacions</div>
                 {notificacions.length === 0 ? (
                   <div style={{ ...card, padding: "28px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 13, color: C.soft, fontStyle: "italic" }}>No tens notificacions pendents</div>
+                    <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>No tens notificacions pendents</div>
                   </div>
                 ) : (
                   <div style={card}>
                     {notificacions.map((n, i, arr) => (
                       <div key={n.id} style={{ padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          <span style={{ fontSize: 16 }}>🔔</span>
+                          <span style={{ fontSize: 18 }}>🔔</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: C.dark }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
-                            <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>{n.missatge}</div>
-                            <div style={{ fontSize: 10, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
+                            <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{n.alumnes?.nom} {n.alumnes?.cognom}</div>
+                            <div style={{ fontSize: 14, color: C.mid, marginTop: 2 }}>{n.missatge}</div>
+                            <div style={{ fontSize: 12, color: C.soft, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("ca-ES")}</div>
                           </div>
-                          <button style={{ ...btn("success"), fontSize: 10, padding: "3px 8px" }} onClick={() => marcarLlegida(n.id)}>✓</button>
+                          <button style={{ ...btn("success"), fontSize: 12, padding: "3px 8px" }} onClick={() => marcarLlegida(n.id)}>✓</button>
                         </div>
                       </div>
                     ))}
@@ -2260,8 +2260,8 @@ function PanelProfessora({ professora, onLogout }) {
           return (
             <button key={item.key} onClick={() => setTab(item.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", border: "none", background: isActive ? "rgba(255,255,255,0.07)" : "transparent", fontFamily: "'DM Sans', sans-serif", position: "relative", transition: "background .15s" }}>
               <item.Icon color={color} />
-              <span style={{ fontSize: 9, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
-              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
+              <span style={{ fontSize: 11, fontWeight: isActive ? 500 : 400, color, letterSpacing: "0.3px" }}>{item.label}</span>
+              {item.count > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 16px)", background: C.terra, color: "white", fontSize: 11, fontWeight: 600, padding: "1px 5px", borderRadius: 20 }}>{item.count}</span>}
             </button>
           );
         })}
@@ -2285,14 +2285,14 @@ function LoginRosario({ onLogin }) {
     <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 340 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.white }}>focus</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>Panel d'administracio</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 700, color: C.white }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontStyle: "italic", color: "#d9a080", marginTop: 4 }}>Panel d'administracio</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 18, padding: 28, border: "0.5px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.white, marginBottom: 20 }}>Acces Rosario</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.white, marginBottom: 20 }}>Acces Rosario</div>
           <Field label="PIN d'acces" value={pin} onChange={v => { setPin(v); setError(""); }} placeholder="****" type="password" />
-          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 12, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
-          <button style={{ ...btn("terra"), width: "100%", padding: 12, fontSize: 14, borderRadius: 10, marginTop: 8 }} onClick={handleLogin}>Entrar</button>
+          {error && <div style={{ background: C.dangerPale, color: C.danger, fontSize: 14, padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+          <button style={{ ...btn("terra"), width: "100%", padding: 12, fontSize: 16, borderRadius: 10, marginTop: 8 }} onClick={handleLogin}>Entrar</button>
         </div>
       </div>
     </div>
@@ -2304,23 +2304,23 @@ function Home() {
   const navigate = useNavigate();
   return (
     <div style={{ minHeight: "100vh", background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 200, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+      <div style={{ position: "absolute", bottom: -40, right: -20, fontFamily: "'Playfair Display', serif", fontSize: 202, fontWeight: 700, color: "rgba(255,255,255,0.03)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
       <div style={{ width: "100%", maxWidth: 360, position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 700, color: C.white, lineHeight: 1 }}>focus</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: "italic", color: "#d9a080", marginTop: 6 }}>et cuida.</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 50, fontWeight: 700, color: C.white, lineHeight: 1 }}>focus</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontStyle: "italic", color: "#d9a080", marginTop: 6 }}>et cuida.</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button onClick={() => navigate("/alumna")} style={{ background: C.terra, color: C.white, border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>Soc alumna</div>
+          <button onClick={() => navigate("/alumna")} style={{ background: C.terra, color: C.white, border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 4 }}>Soc alumna</div>
             <div>Accedeix a la teva area personal</div>
           </button>
-          <button onClick={() => navigate("/professora")} style={{ background: "rgba(255,255,255,0.06)", color: C.white, border: "0.5px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
-            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 4 }}>Soc professora</div>
+          <button onClick={() => navigate("/professora")} style={{ background: "rgba(255,255,255,0.06)", color: C.white, border: "0.5px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 14, opacity: 0.5, marginBottom: 4 }}>Soc professora</div>
             <div>Veure les meves classes</div>
           </button>
-          <button onClick={() => navigate("/admin")} style={{ background: "rgba(255,255,255,0.04)", color: C.white, border: "0.5px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 24px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
-            <div style={{ fontSize: 12, opacity: 0.4, marginBottom: 4 }}>Administracio</div>
+          <button onClick={() => navigate("/admin")} style={{ background: "rgba(255,255,255,0.04)", color: C.white, border: "0.5px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+            <div style={{ fontSize: 14, opacity: 0.4, marginBottom: 4 }}>Administracio</div>
             <div>Panel de Rosario</div>
           </button>
         </div>
