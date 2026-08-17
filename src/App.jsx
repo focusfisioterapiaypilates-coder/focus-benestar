@@ -564,6 +564,18 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                   })
                 )}
 
+                {/* Recuperacions confirmades - apareixen entre les classes fixes i la llista */}
+                {recuperacions.filter(r => r.estat === "aprovada" && r.data_proposta_alumna && new Date(r.data_proposta_alumna + "T12:00:00") >= new Date()).map(r => (
+                  <div key={r.id} style={{ background: C.terraPale, borderRadius: 14, padding: 20, marginBottom: 12, border: `1.5px solid ${C.terra}`, position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 92, fontWeight: 700, color: "rgba(193,123,90,0.08)", lineHeight: 1, pointerEvents: "none" }}>focus</div>
+                    <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.terra, marginBottom: 8 }}>Recuperació confirmada</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.terraDark, marginBottom: 4 }}>Pilates Reformer</div>
+                    <div style={{ fontSize: 15, color: C.terra, fontWeight: 300 }}>
+                      {formatDataCurta(new Date(r.data_proposta_alumna + "T12:00:00"))}
+                    </div>
+                  </div>
+                ))}
+
                 <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.soft, margin: "20px 0 10px" }}>Properes setmanes</div>
                 {(() => {
                   const avui = new Date(); avui.setHours(0,0,0,0);
