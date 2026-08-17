@@ -228,9 +228,10 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = [], recu
       if (bloquejos && bloquejos.some(b => b.franja_id === f.id && b.data === dateStr)) return;
       const max = f.tipus_classe === "individual" ? 1 : 3;
 
-      // Count fixed horaris for this franja (always occupy a spot)
+      // Count fixed horaris for this franja (only those that have started)
       const fixos = horarisFixos.filter(h =>
-        h.franja_id === f.id && h.actiu && (h.tipus === "fix" || !h.tipus)
+        h.franja_id === f.id && h.actiu && (h.tipus === "fix" || !h.tipus) &&
+        (!h.data_inici || h.data_inici <= dateStr)
       ).length;
 
       // Count puntual classes for this specific date
@@ -299,7 +300,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const avuiStr = toLocalDateStr(avui);
     const [h, a, r, fr, totsHoraris, assistenciesClasses] = await Promise.all([
       // This alumna's horaris
-      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(nom, telefon))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe"),
+      supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(nom, telefon))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe").order("data_inici"),
       // This alumna's assistencies history
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
       // This alumna's recuperacions
@@ -307,7 +308,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       // All franges
       supabase.from("franges").select("*, serveis(*), professores(nom, telefon)").eq("activa", true),
       // ALL horaris fixos (to count real occupancy per franja)
-      supabase.from("horaris_alumnes").select("franja_id, actiu, tipus, data_classe").eq("actiu", true),
+      supabase.from("horaris_alumnes").select("franja_id, actiu, tipus, data_classe, data_inici").eq("actiu", true),
       // All assistencies for next 30 days (cancelations + recuperacions)
       supabase.from("classes").select("franja_id, data, assistencies(estat, alumna_id)").gte("data", avuiStr).lte("data", limitStr),
     ]);
@@ -534,6 +535,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     const servei = franja?.serveis;
                     const nextDate = franja ? getNextDate(franja.dia_setmana, franja.hora_inici) : null;
                     const esPuntual = h.tipus === "puntual";
+                    const avuiStr = toLocalDateStr(new Date());
+                    const esFutura = h.data_inici && h.data_inici > avuiStr;
                     const dataText = esPuntual && h.data_classe
                       ? formatDataCurta(new Date(h.data_classe + "T12:00:00"))
                       : (nextDate ? formatDataCurta(nextDate) : "");
@@ -544,6 +547,17 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       a.classes?.data === dataComparar &&
                       a.estat === "cancelada"
                     );
+                    if (esFutura) {
+                      return (
+                        <div key={h.id} style={{ background: C.olivePale, borderRadius: 14, padding: 20, marginBottom: 12, border: `1.5px dashed ${C.olive}` }}>
+                          <div style={{ fontSize: 12, letterSpacing: "2px", textTransform: "uppercase", color: C.olive, marginBottom: 8 }}>Pròxima incorporació</div>
+                          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>{h.franges?.serveis?.nom || "Pilates Reformer"}</div>
+                          <div style={{ fontSize: 15, color: C.olive, fontWeight: 300 }}>
+                            La teva primera classe serà el {formatDataCurta(new Date(h.data_inici + "T12:00:00"))} a les {h.franges?.hora_inici?.slice(0,5)}
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={h.id} style={{ background: jaCancel·lada ? C.dangerPale : (esPuntual ? C.terraDark : C.oliveDark), borderRadius: 14, padding: 20, marginBottom: 12, position: "relative", overflow: "hidden", border: jaCancel·lada ? `0.5px solid rgba(160,48,48,0.2)` : "none" }}>
                         {!jaCancel·lada && <div style={{ position: "absolute", bottom: -16, right: -8, fontFamily: "'Playfair Display', serif", fontSize: 92, fontWeight: 700, color: "rgba(255,255,255,0.04)", lineHeight: 1, pointerEvents: "none" }}>focus</div>}
@@ -1001,6 +1015,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 
   const [tipusHorari, setTipusHorari] = useState("fix");
   const [dataPuntual, setDataPuntual] = useState("");
+  const [dataInici, setDataInici] = useState("");
 
   async function handleAddHorari() {
     if (!selectedFranja) return alert("Selecciona una franja");
@@ -1008,6 +1023,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
     if (tipusHorari === "puntual" && !dataPuntual) return alert("Selecciona la data de la classe puntual");
     const insert = { alumna_id: alumna.id, franja_id: selectedFranja, actiu: true, tipus: tipusHorari };
     if (tipusHorari === "puntual") insert.data_classe = dataPuntual;
+    if (dataInici) insert.data_inici = dataInici;
     const { error } = await supabase.from("horaris_alumnes").insert([insert]);
     if (error) return alert("Error: " + error.message);
     setShowAddHorari(false);
@@ -1111,6 +1127,15 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
               <div style={{ fontSize: 12, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data de la classe</div>
               <input type="date" value={dataPuntual} onChange={e => setDataPuntual(e.target.value)}
                 style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          )}
+          {tipusHorari === "fix" && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data d'inici (opcional)</div>
+              <input type="date" value={dataInici} onChange={e => setDataInici(e.target.value)}
+                placeholder="Deixar buit = comença avui"
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
+              <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>Si la alumna comença més endavant, posa la data aquí</div>
             </div>
           )}
           <div style={{ marginBottom: 8 }}>
