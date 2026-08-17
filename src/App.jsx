@@ -1130,23 +1130,35 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
             </div>
           )}
           {tipusHorari === "fix" && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data d'inici (opcional)</div>
-              <input type="date" value={dataInici} onChange={e => setDataInici(e.target.value)}
-                placeholder="Deixar buit = comença avui"
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data d'inici</div>
+              <input type="date" value={dataInici} onChange={e => { setDataInici(e.target.value); setSelectedFranja(""); }}
                 style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
-              <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>Si la alumna comença més endavant, posa la data aquí</div>
+              {dataInici
+                ? <div style={{ fontSize: 11, color: C.olive, marginTop: 3 }}>
+                    {["Diumenge","Dilluns","Dimarts","Dimecres","Dijous","Divendres","Dissabte"][new Date(dataInici + "T12:00:00").getDay()]} — selecciona l'hora
+                  </div>
+                : <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>Tria la data per veure els horaris disponibles</div>
+              }
             </div>
           )}
           <div style={{ marginBottom: 8 }}>
             <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}>
-              <option value="">Selecciona horari...</option>
-              {frangesFiltrades.map(f => (
-                <option key={f.id} value={f.id}>
-                  {dies[f.dia_setmana]} {f.hora_inici?.slice(0,5)} — {f.tipus_classe === "individual" ? "Individual" : "Grupal"}
-                </option>
-              ))}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: tipusHorari === "fix" && !dataInici ? C.oliveXpale : C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}
+              disabled={tipusHorari === "fix" && !dataInici}>
+              <option value="">{tipusHorari === "fix" && !dataInici ? "Primer tria la data d'inici..." : "Selecciona horari..."}</option>
+              {frangesFiltrades
+                .filter(f => {
+                  if (tipusHorari !== "fix" || !dataInici) return true;
+                  const dow = new Date(dataInici + "T12:00:00").getDay();
+                  return f.dia_setmana === (dow === 0 ? 7 : dow);
+                })
+                .map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)} ({f.tipus_classe === "individual" ? "Individual" : "Grupal"})
+                  </option>
+                ))
+              }
             </select>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -1989,12 +2001,13 @@ function PanelProfessora({ professora, onLogout }) {
     if (franges && franges.length > 0) {
       const franjaIds = franges.map(f => f.id);
 
-      // Get horaris alumnes (fixed schedule)
+      // Get horaris alumnes (fixed schedule) - only those that have started
       const { data: horarisData } = await supabase.from("horaris_alumnes")
         .select("*, alumnes(nom, cognom, telefon)")
         .in("franja_id", franjaIds)
         .eq("actiu", true)
-        .eq("tipus", "fix");
+        .eq("tipus", "fix")
+        .or(`data_inici.is.null,data_inici.lte.${fiStr}`);
 
       // Get ALL assistencies for this week using RPC-style query
       // First get classe ids for this week
