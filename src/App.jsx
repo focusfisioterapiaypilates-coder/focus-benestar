@@ -303,7 +303,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       // This alumna's assistencies history
       supabase.from("assistencies").select("*, classes(*, franges(*, serveis(*)))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }).limit(20),
       // This alumna's recuperacions
-      supabase.from("recuperacions").select("*").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
+      supabase.from("recuperacions").select("*, franges(hora_inici, hora_fi, serveis(nom))").eq("alumna_id", alumna.id).order("created_at", { ascending: false }),
       // All franges
       supabase.from("franges").select("*, serveis(*), professores(nom, telefon)").eq("activa", true),
       // ALL horaris fixos (to count real occupancy per franja)
@@ -572,6 +572,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.terraDark, marginBottom: 4 }}>Pilates Reformer</div>
                     <div style={{ fontSize: 15, color: C.terra, fontWeight: 300 }}>
                       {formatDataCurta(new Date(r.data_proposta_alumna + "T12:00:00"))}
+                      {r.franges?.hora_inici && ` · ${r.franges.hora_inici.slice(0,5)} – ${r.franges.hora_fi?.slice(0,5) || ""}`}
                     </div>
                   </div>
                 ))}
