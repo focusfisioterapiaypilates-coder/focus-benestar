@@ -1370,7 +1370,7 @@ function VistaCalendari({ mobile }) {
     return franges
       .filter(f => f.dia_setmana === diaNum)
       .map(f => {
-        const alumnesDia = horaris.filter(h => h.franja_id === f.id && (h.tipus === "fix" || !h.tipus));
+        const alumnesDia = horaris.filter(h => h.franja_id === f.id && (h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr));
         const bloq = bloquejos.some(b => b.franja_id === f.id && b.data === dataStr);
         return { ...f, alumnes: alumnesDia, bloquejada: bloq };
       });
@@ -2073,7 +2073,7 @@ function PanelProfessora({ professora, onLogout }) {
                 const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
                 return {
                   ...f,
-                  alumnes: (horarisData || []).filter(h => h.franja_id === f.id),
+                  alumnes: (horarisData || []).filter(h => h.franja_id === f.id && (!h.data_inici || h.data_inici <= dataStr)),
                   cancelades,
                   recuperacions,
                 };
