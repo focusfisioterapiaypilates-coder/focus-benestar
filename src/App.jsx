@@ -609,7 +609,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     const diaNum = d.getDay() === 0 ? 7 : d.getDay();
                     if (diaNum > 5) continue;
                     const dateStr = toLocalDateStr(d);
-                    horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus)).forEach(h => {
+                    horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dateStr)).forEach(h => {
                       const jaCancel = assistencies.some(a => a.classes?.franja_id === h.franja_id && a.classes?.data === dateStr && a.estat === "cancelada");
                       properes.push({ h, d: new Date(d), dateStr, jaCancel });
                     });
@@ -1491,7 +1491,7 @@ function VistaCalendari({ mobile }) {
                     <div key={`cel-${diaIdx}-${hora}`} style={{ borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}`, minHeight: 44, position: "relative", background: C.white, cursor: classesCela.length > 0 ? "pointer" : "default" }}
                       onClick={() => classesCela.length > 0 && setDiaSeleccionat(diaIdx)}>
                       {classesCela.map(cl => {
-                        const alumnesCl = horaris.filter(h => h.franja_id === cl.id);
+                        const alumnesCl = horaris.filter(h => h.franja_id === cl.id && (!h.data_inici || h.data_inici <= dataStr));
                         const bloq = bloquejos.some(b => b.franja_id === cl.id && b.data === dataStr);
                         const color = bloq ? "#a03030" : (profeColors[cl.professores?.nom || "?"] || C.oliveDark);
                         const durada = cl.hora_fi ? parseInt(cl.hora_fi.slice(0,2)) - parseInt(cl.hora_inici?.slice(0,2) || "0") : 1;
