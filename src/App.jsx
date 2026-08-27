@@ -231,7 +231,8 @@ function generateSlots(franges, horarisFixos, assistencies, bloquejos = [], recu
       // Count fixed horaris for this franja (only those that have started)
       const fixos = horarisFixos.filter(h =>
         h.franja_id === f.id && h.actiu && (h.tipus === "fix" || !h.tipus) &&
-        (!h.data_inici || h.data_inici <= dateStr)
+        (!h.data_inici || h.data_inici <= dateStr) &&
+        (!h.data_fi || dateStr <= h.data_fi)
       ).length;
 
       // Count puntual classes for this specific date
@@ -609,7 +610,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     const diaNum = d.getDay() === 0 ? 7 : d.getDay();
                     if (diaNum > 5) continue;
                     const dateStr = toLocalDateStr(d);
-                    horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dateStr)).forEach(h => {
+                    horaris.filter(h => h.franges?.dia_setmana === diaNum && (h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dateStr) && (!h.data_fi || dateStr <= h.data_fi)).forEach(h => {
                       const jaCancel = assistencies.some(a => a.classes?.franja_id === h.franja_id && a.classes?.data === dateStr && a.estat === "cancelada");
                       properes.push({ h, d: new Date(d), dateStr, jaCancel });
                     });
@@ -1016,6 +1017,8 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
   const [tipusHorari, setTipusHorari] = useState("fix");
   const [dataPuntual, setDataPuntual] = useState("");
   const [dataInici, setDataInici] = useState("");
+  const [showBaixa, setShowBaixa] = useState(false);
+  const [dataBaixa, setDataBaixa] = useState("");
 
   async function handleAddHorari() {
     if (!selectedFranja) return alert("Selecciona una franja");
@@ -1044,6 +1047,31 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
     await supabase.from("alumnes").update({ activa: !alumna.activa }).eq("id", alumna.id);
     onRefresh();
     onClose();
+  }
+
+  async function handleDonarBaixa() {
+    if (!dataBaixa) return alert("Selecciona la data de baixa");
+    setSaving(true);
+    // Fixed horaris: keep them visible/occupying a place up to and including dataBaixa, then stop.
+    await supabase.from("horaris_alumnes")
+      .update({ data_fi: dataBaixa })
+      .eq("alumna_id", alumna.id)
+      .eq("actiu", true)
+      .or("tipus.eq.fix,tipus.is.null");
+    // Puntual classes scheduled after the baixa date: cancel them (a single date, data_fi doesn't apply).
+    await supabase.from("horaris_alumnes")
+      .update({ actiu: false })
+      .eq("alumna_id", alumna.id)
+      .eq("actiu", true)
+      .eq("tipus", "puntual")
+      .gt("data_classe", dataBaixa);
+    // Block login immediately.
+    await supabase.from("alumnes").update({ activa: false }).eq("id", alumna.id);
+    setSaving(false);
+    setShowBaixa(false);
+    onRefresh();
+    onClose();
+    alert("Alumna donada de baixa. Les classes es mantenen fins al " + dataBaixa + " inclos.");
   }
 
   const frangesFiltrades = franges;
@@ -1169,9 +1197,28 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
       )}
 
       <div style={{ paddingTop: 14, borderTop: `0.5px solid ${C.border}` }}>
-        <button style={{ ...btn(alumna.activa ? "danger" : "success"), width: "100%" }} onClick={toggleActiva}>
-          {alumna.activa ? "Donar de baixa" : "Reactivar alumna"}
-        </button>
+        {alumna.activa ? (
+          showBaixa ? (
+            <div style={{ background: C.dangerPale, borderRadius: 10, padding: 14, border: `0.5px solid rgba(160,48,48,0.2)` }}>
+              <div style={{ fontSize: 12, letterSpacing: "1px", textTransform: "uppercase", color: C.danger, marginBottom: 6 }}>Data de baixa</div>
+              <input type="date" value={dataBaixa} onChange={e => setDataBaixa(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box", marginBottom: 10 }} />
+              <div style={{ fontSize: 12, color: C.danger, fontWeight: 300, marginBottom: 10, lineHeight: 1.4 }}>
+                Les classes fixes es mantindran al calendari i ocupant plaça fins aquesta data (inclosa). A partir de l'endemà, deixaran d'aparèixer. L'accés de l'alumna a l'app es bloqueja ara mateix.
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowBaixa(false); setDataBaixa(""); }}>Cancel.lar</button>
+                <button style={{ ...btn("danger"), flex: 1 }} disabled={saving} onClick={handleDonarBaixa}>Confirmar baixa</button>
+              </div>
+            </div>
+          ) : (
+            <button style={{ ...btn("danger"), width: "100%" }} onClick={() => { setDataBaixa(toLocalDateStr(new Date())); setShowBaixa(true); }}>
+              Donar de baixa
+            </button>
+          )
+        ) : (
+          <button style={{ ...btn("success"), width: "100%" }} onClick={toggleActiva}>Reactivar alumna</button>
+        )}
       </div>
       </>
       )}
@@ -1370,7 +1417,10 @@ function VistaCalendari({ mobile }) {
     return franges
       .filter(f => f.dia_setmana === diaNum)
       .map(f => {
-        const alumnesDia = horaris.filter(h => h.franja_id === f.id && (h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr));
+        const alumnesDia = horaris.filter(h => h.franja_id === f.id && (
+          (h.tipus === "puntual" && h.data_classe === dataStr) ||
+          ((h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr) && (!h.data_fi || dataStr <= h.data_fi))
+        ));
         const bloq = bloquejos.some(b => b.franja_id === f.id && b.data === dataStr);
         return { ...f, alumnes: alumnesDia, bloquejada: bloq };
       });
@@ -1491,7 +1541,10 @@ function VistaCalendari({ mobile }) {
                     <div key={`cel-${diaIdx}-${hora}`} style={{ borderBottom: `0.5px solid ${C.border}`, borderLeft: `0.5px solid ${C.border}`, minHeight: 44, position: "relative", background: C.white, cursor: classesCela.length > 0 ? "pointer" : "default" }}
                       onClick={() => classesCela.length > 0 && setDiaSeleccionat(diaIdx)}>
                       {classesCela.map(cl => {
-                        const alumnesCl = horaris.filter(h => h.franja_id === cl.id && (!h.data_inici || h.data_inici <= dataStr));
+                        const alumnesCl = horaris.filter(h => h.franja_id === cl.id && (
+                          (h.tipus === "puntual" && h.data_classe === dataStr) ||
+                          ((h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr) && (!h.data_fi || dataStr <= h.data_fi))
+                        ));
                         const bloq = bloquejos.some(b => b.franja_id === cl.id && b.data === dataStr);
                         const color = bloq ? "#a03030" : (profeColors[cl.professores?.nom || "?"] || C.oliveDark);
                         const durada = cl.hora_fi ? parseInt(cl.hora_fi.slice(0,2)) - parseInt(cl.hora_inici?.slice(0,2) || "0") : 1;
@@ -2005,9 +2058,7 @@ function PanelProfessora({ professora, onLogout }) {
       const { data: horarisData } = await supabase.from("horaris_alumnes")
         .select("*, alumnes(nom, cognom, telefon)")
         .in("franja_id", franjaIds)
-        .eq("actiu", true)
-        .eq("tipus", "fix")
-        .or(`data_inici.is.null,data_inici.lte.${fiStr}`);
+        .eq("actiu", true);
 
       // Get ALL assistencies for this week using RPC-style query
       // First get classe ids for this week
@@ -2073,7 +2124,10 @@ function PanelProfessora({ professora, onLogout }) {
                 const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
                 return {
                   ...f,
-                  alumnes: (horarisData || []).filter(h => h.franja_id === f.id && (!h.data_inici || h.data_inici <= dataStr)),
+                  alumnes: (horarisData || []).filter(h => h.franja_id === f.id && (
+                    (h.tipus === "puntual" && h.data_classe === dataStr) ||
+                    ((h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr) && (!h.data_fi || dataStr <= h.data_fi))
+                  )),
                   cancelades,
                   recuperacions,
                 };
