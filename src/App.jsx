@@ -1019,22 +1019,40 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
   const [dataInici, setDataInici] = useState("");
   const [showBaixa, setShowBaixa] = useState(false);
   const [dataBaixa, setDataBaixa] = useState("");
+  const [editingHorari, setEditingHorari] = useState(null);
 
   async function handleAddHorari() {
     if (!selectedFranja) return alert("Selecciona una franja");
-    if (tipusHorari === "fix" && horaris.filter(h => h.tipus === "fix").length >= 3) return alert("Maxim 3 horaris fixos per alumna");
+    if (!editingHorari && tipusHorari === "fix" && horaris.filter(h => h.tipus === "fix").length >= 3) return alert("Maxim 3 horaris fixos per alumna");
     if (tipusHorari === "puntual" && !dataPuntual) return alert("Selecciona la data de la classe puntual");
-    const insert = { alumna_id: alumna.id, franja_id: selectedFranja, actiu: true, tipus: tipusHorari };
-    if (tipusHorari === "puntual") insert.data_classe = dataPuntual;
-    if (dataInici) insert.data_inici = dataInici;
-    const { error } = await supabase.from("horaris_alumnes").insert([insert]);
-    if (error) return alert("Error: " + error.message);
+    if (editingHorari) {
+      const update = { franja_id: selectedFranja, tipus: tipusHorari, data_inici: tipusHorari === "fix" ? (dataInici || null) : null, data_classe: tipusHorari === "puntual" ? dataPuntual : null };
+      const { error } = await supabase.from("horaris_alumnes").update(update).eq("id", editingHorari.id);
+      if (error) return alert("Error: " + error.message);
+    } else {
+      const insert = { alumna_id: alumna.id, franja_id: selectedFranja, actiu: true, tipus: tipusHorari };
+      if (tipusHorari === "puntual") insert.data_classe = dataPuntual;
+      if (dataInici) insert.data_inici = dataInici;
+      const { error } = await supabase.from("horaris_alumnes").insert([insert]);
+      if (error) return alert("Error: " + error.message);
+    }
     setShowAddHorari(false);
+    setEditingHorari(null);
     setSelectedFranja("");
     setDataPuntual("");
+    setDataInici("");
     setTipusHorari("fix");
     fetchHoraris();
     onRefresh();
+  }
+
+  function handleEditarHorari(h) {
+    setEditingHorari(h);
+    setTipusHorari(h.tipus === "puntual" ? "puntual" : "fix");
+    setSelectedFranja(h.franja_id);
+    setDataInici(h.data_inici || "");
+    setDataPuntual(h.data_classe || "");
+    setShowAddHorari(true);
   }
 
   async function handleRemoveHorari(id) {
@@ -1113,6 +1131,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
                   {dies[h.franges?.dia_setmana] || ""} · {h.franges?.hora_inici?.slice(0,5) || ""} – {h.franges?.hora_fi?.slice(0,5) || ""}
                 </div>
               </div>
+              <button style={{ ...btn("secondary"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleEditarHorari(h)}>Editar</button>
               <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
             </div>
           ))}
@@ -1128,6 +1147,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
                 </div>
               </div>
               <span style={{ ...tag("warn"), marginRight: 6 }}>Puntual</span>
+              <button style={{ ...btn("secondary"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleEditarHorari(h)}>Editar</button>
               <button style={{ ...btn("danger"), padding: "4px 10px", fontSize: 13 }} onClick={() => handleRemoveHorari(h.id)}>Treure</button>
             </div>
           ))}
@@ -1136,11 +1156,12 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
       )}
 
       {horaris.length < 3 && !showAddHorari && (
-        <button style={{ ...btn("primary"), width: "100%", marginBottom: 16 }} onClick={() => setShowAddHorari(true)}>+ Afegir horari fix</button>
+        <button style={{ ...btn("primary"), width: "100%", marginBottom: 16 }} onClick={() => { setEditingHorari(null); setSelectedFranja(""); setTipusHorari("fix"); setDataPuntual(""); setDataInici(""); setShowAddHorari(true); }}>+ Afegir horari fix</button>
       )}
 
       {showAddHorari && (
         <div style={{ background: C.oliveXpale, borderRadius: 10, padding: 14, marginBottom: 16, border: `0.5px solid ${C.border}` }}>
+          {editingHorari && <div style={{ fontSize: 13, fontWeight: 600, color: C.oliveDark, marginBottom: 10 }}>Editant horari existent</div>}
           <div style={{ fontSize: 13, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 8 }}>Tipus de classe</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             <button onClick={() => setTipusHorari("fix")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${tipusHorari === "fix" ? C.olive : C.border}`, background: tipusHorari === "fix" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: tipusHorari === "fix" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
@@ -1166,15 +1187,15 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
                 ? <div style={{ fontSize: 11, color: C.olive, marginTop: 3 }}>
                     {["Diumenge","Dilluns","Dimarts","Dimecres","Dijous","Divendres","Dissabte"][new Date(dataInici + "T12:00:00").getDay()]} — selecciona l'hora
                   </div>
-                : <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>Tria la data per veure els horaris disponibles</div>
+                : <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>{editingHorari ? "Deixa-ho buit per mantenir l'horari obert des de l'inici" : "Tria la data per veure els horaris disponibles"}</div>
               }
             </div>
           )}
           <div style={{ marginBottom: 8 }}>
             <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: tipusHorari === "fix" && !dataInici ? C.oliveXpale : C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}
-              disabled={tipusHorari === "fix" && !dataInici}>
-              <option value="">{tipusHorari === "fix" && !dataInici ? "Primer tria la data d'inici..." : "Selecciona horari..."}</option>
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: tipusHorari === "fix" && !dataInici && !editingHorari ? C.oliveXpale : C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}
+              disabled={tipusHorari === "fix" && !dataInici && !editingHorari}>
+              <option value="">{tipusHorari === "fix" && !dataInici && !editingHorari ? "Primer tria la data d'inici..." : "Selecciona horari..."}</option>
               {frangesFiltrades
                 .filter(f => {
                   if (tipusHorari !== "fix" || !dataInici) return true;
@@ -1183,15 +1204,15 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
                 })
                 .map(f => (
                   <option key={f.id} value={f.id}>
-                    {f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)} ({f.tipus_classe === "individual" ? "Individual" : "Grupal"})
+                    {f.serveis?.nom ? f.serveis.nom + " · " : ""}{f.hora_inici?.slice(0,5)} – {f.hora_fi?.slice(0,5)} ({f.tipus_classe === "individual" ? "Individual" : "Grupal"})
                   </option>
                 ))
               }
             </select>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowAddHorari(false); setSelectedFranja(""); setTipusHorari("fix"); setDataPuntual(""); }}>Cancel.lar</button>
-            <button style={{ ...btn("primary"), flex: 1 }} onClick={handleAddHorari}>Assignar</button>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => { setShowAddHorari(false); setEditingHorari(null); setSelectedFranja(""); setTipusHorari("fix"); setDataPuntual(""); setDataInici(""); }}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={handleAddHorari}>{editingHorari ? "Guardar canvis" : "Assignar"}</button>
           </div>
         </div>
       )}
@@ -1372,6 +1393,8 @@ function VistaCalendari({ mobile }) {
   const [franges, setFranges] = useState([]);
   const [horaris, setHoraris] = useState([]);
   const [bloquejos, setBloquejos] = useState([]);
+  const [assLookup, setAssLookup] = useState({});
+  const [recuperacionsSetmana, setRecuperacionsSetmana] = useState([]);
   const [loading, setLoading] = useState(true);
   const dies = ["Dil", "Dim", "Dim", "Dij", "Div"];
   const diesComplets = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
@@ -1404,6 +1427,45 @@ function VistaCalendari({ mobile }) {
     if (fr.data) setFranges(fr.data);
     if (ho.data) setHoraris(ho.data);
     if (bl.data) setBloquejos(bl.data);
+
+    // Cancel·lacions i recuperacions d'aquesta setmana, perque el calendari les reflecteixi
+    const franjaIds = (fr.data || []).map(f => f.id);
+    if (franjaIds.length > 0) {
+      const { data: classeIds } = await supabase.from("classes")
+        .select("id, franja_id, data")
+        .in("franja_id", franjaIds)
+        .gte("data", inici)
+        .lte("data", fi);
+      const classeMap = {};
+      (classeIds || []).forEach(c => { classeMap[c.id] = { franja_id: c.franja_id, data: c.data }; });
+      const classeIdList = Object.keys(classeMap);
+      let assistenciesData = [];
+      if (classeIdList.length > 0) {
+        const { data: ass } = await supabase.from("assistencies")
+          .select("classe_id, estat, alumna_id")
+          .in("classe_id", classeIdList)
+          .in("estat", ["cancelada", "recuperacio"]);
+        assistenciesData = ass || [];
+      }
+      const lookup = {};
+      assistenciesData.forEach(a => {
+        const info = classeMap[a.classe_id];
+        if (!info) return;
+        const key = info.franja_id + "|" + info.data;
+        if (!lookup[key]) lookup[key] = [];
+        lookup[key].push(a);
+      });
+      setAssLookup(lookup);
+      const { data: recupSetmana } = await supabase.from("recuperacions")
+        .select("alumna_id, franja_id, data_proposta_alumna, alumnes(nom, cognom)")
+        .eq("estat", "aprovada")
+        .gte("data_proposta_alumna", inici)
+        .lte("data_proposta_alumna", fi);
+      setRecuperacionsSetmana(recupSetmana || []);
+    } else {
+      setAssLookup({});
+      setRecuperacionsSetmana([]);
+    }
     setLoading(false);
   }
 
@@ -1422,7 +1484,14 @@ function VistaCalendari({ mobile }) {
           ((h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr) && (!h.data_fi || dataStr <= h.data_fi))
         ));
         const bloq = bloquejos.some(b => b.franja_id === f.id && b.data === dataStr);
-        return { ...f, alumnes: alumnesDia, bloquejada: bloq };
+        const key = f.id + "|" + dataStr;
+        const assPerFranja = assLookup[key] || [];
+        const cancelades = assPerFranja.filter(a => a.estat === "cancelada");
+        const recuperacionsAssist = assPerFranja.filter(a => a.estat === "recuperacio");
+        const recuperacionsDirectes = (recuperacionsSetmana || []).filter(r => r.data_proposta_alumna === dataStr && r.franja_id === f.id);
+        const totsIds = new Set(recuperacionsAssist.map(r => r.alumna_id));
+        const recuperacions = [...recuperacionsAssist, ...recuperacionsDirectes.filter(r => !totsIds.has(r.alumna_id))];
+        return { ...f, alumnes: alumnesDia, cancelades, recuperacions, bloquejada: bloq };
       });
   }
 
@@ -1464,19 +1533,33 @@ function VistaCalendari({ mobile }) {
                 <div style={{ textAlign: "right" }}>
                   {cl.bloquejada
                     ? <span style={{ fontSize: 12, background: "rgba(255,255,255,0.2)", color: C.white, padding: "2px 8px", borderRadius: 20 }}>Bloquejada</span>
-                    : <span style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{cl.alumnes.length}/{cl.tipus_classe === "individual" ? 1 : 3}</span>
+                    : <span style={{ fontSize: 13, fontWeight: 600, color: C.white }}>{cl.alumnes.length - cl.cancelades.length + (cl.recuperacions?.length || 0)}/{cl.tipus_classe === "individual" ? 1 : 3}</span>
                   }
                 </div>
               </div>
-              {!cl.bloquejada && cl.alumnes.map((h, i, arr) => (
-                <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.oliveDark, flexShrink: 0 }}>
-                    {h.alumnes?.nom?.[0] || "?"}
+              {!cl.bloquejada && cl.alumnes.map((h, i, arr) => {
+                const cancelada = cl.cancelades.some(c => c.alumna_id === h.alumna_id);
+                return (
+                  <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", opacity: cancelada ? 0.4 : 1 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: cancelada ? C.dangerPale : C.olivePale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: cancelada ? C.danger : C.oliveDark, flexShrink: 0 }}>
+                      {h.alumnes?.nom?.[0] || "?"}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, color: C.dark, textDecoration: cancelada ? "line-through" : "none" }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                      {cancelada && <div style={{ fontSize: 12, color: C.danger }}>Ha cancel·lat</div>}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 15, color: C.dark }}>{h.alumnes?.nom} {h.alumnes?.cognom}</div>
+                );
+              })}
+              {!cl.bloquejada && (cl.recuperacions || []).map((r, i) => (
+                <div key={`recup-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: C.terraPale }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.terraPale, border: `1.5px solid ${C.terra}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: C.terraDark, flexShrink: 0 }}>
+                    {r.alumnes?.nom?.[0] || "↺"}
+                  </div>
+                  <div style={{ fontSize: 15, color: C.terraDark }}>{r.alumnes?.nom} {r.alumnes?.cognom} <span style={{ fontSize: 12, color: C.terra }}>· Recuperacio</span></div>
                 </div>
               ))}
-              {!cl.bloquejada && cl.alumnes.length === 0 && (
+              {!cl.bloquejada && cl.alumnes.length === 0 && (cl.recuperacions?.length || 0) === 0 && (
                 <div style={{ padding: "10px 14px", fontSize: 14, color: C.soft, fontStyle: "italic" }}>Sense alumnes assignades</div>
               )}
             </div>
@@ -1545,6 +1628,13 @@ function VistaCalendari({ mobile }) {
                           (h.tipus === "puntual" && h.data_classe === dataStr) ||
                           ((h.tipus === "fix" || !h.tipus) && (!h.data_inici || h.data_inici <= dataStr) && (!h.data_fi || dataStr <= h.data_fi))
                         ));
+                        const keyCl = cl.id + "|" + dataStr;
+                        const assPerFranjaCl = assLookup[keyCl] || [];
+                        const canceladesCl = assPerFranjaCl.filter(a => a.estat === "cancelada").length;
+                        const recupAssistCl = assPerFranjaCl.filter(a => a.estat === "recuperacio");
+                        const recupDirectesCl = (recuperacionsSetmana || []).filter(r => r.data_proposta_alumna === dataStr && r.franja_id === cl.id);
+                        const totsIdsCl = new Set(recupAssistCl.map(r => r.alumna_id));
+                        const recuperacionsCl = recupAssistCl.length + recupDirectesCl.filter(r => !totsIdsCl.has(r.alumna_id)).length;
                         const bloq = bloquejos.some(b => b.franja_id === cl.id && b.data === dataStr);
                         const color = bloq ? "#a03030" : (profeColors[cl.professores?.nom || "?"] || C.oliveDark);
                         const durada = cl.hora_fi ? parseInt(cl.hora_fi.slice(0,2)) - parseInt(cl.hora_inici?.slice(0,2) || "0") : 1;
@@ -1554,7 +1644,7 @@ function VistaCalendari({ mobile }) {
                               {cl.hora_inici?.slice(0,5)} {cl.serveis?.nom?.replace("Pilates ", "").slice(0,3) || ""}
                             </div>
                             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
-                              {bloq ? "Bloq." : `${alumnesCl.length}/${cl.tipus_classe === "individual" ? 1 : 3}`}
+                              {bloq ? "Bloq." : `${alumnesCl.length - canceladesCl + recuperacionsCl}/${cl.tipus_classe === "individual" ? 1 : 3}`}
                             </div>
                           </div>
                         );
