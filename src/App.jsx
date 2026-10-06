@@ -1442,7 +1442,7 @@ function VistaCalendari({ mobile }) {
       let assistenciesData = [];
       if (classeIdList.length > 0) {
         const { data: ass } = await supabase.from("assistencies")
-          .select("classe_id, estat, alumna_id")
+          .select("classe_id, estat, alumna_id, alumnes(nom, cognom)")
           .in("classe_id", classeIdList)
           .in("estat", ["cancelada", "recuperacio"]);
         assistenciesData = ass || [];
@@ -1839,10 +1839,25 @@ function VistaFranges({ mobile }) {
 function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   const [tab, setTab] = useState("recuperacions");
   const [aprovats, setAprovats] = useState({}); // { id: { tipus: 'aprovada'|'rebutjada' } } - tracking local abans de refrescar
+  const [cancelacions, setCancelacions] = useState([]);
+  const [loadingCancel, setLoadingCancel] = useState(true);
   const pendR = recuperacions.filter(r => r.estat === "pendent");
   const pendC = canvis.filter(c => c.estat === "pendent");
 
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
+
+  useEffect(() => { fetchCancelacions(); }, []);
+
+  async function fetchCancelacions() {
+    setLoadingCancel(true);
+    const { data } = await supabase.from("assistencies")
+      .select("*, alumnes(nom, cognom, telefon), classes(data, franja_id, franges(hora_inici, hora_fi, dia_setmana, serveis(nom)))")
+      .in("estat", ["cancelada", "recuperacio"])
+      .order("created_at", { ascending: false })
+      .limit(80);
+    setCancelacions(data || []);
+    setLoadingCancel(false);
+  }
 
   async function aprovar(tabla, id) {
     await supabase.from(tabla).update({ estat: "aprovada" }).eq("id", id);
@@ -1871,10 +1886,42 @@ function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
       <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark, marginBottom: 4 }}>Recuperacions i Canvis</div>
       <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Sol.licituds pendents de les alumnes</div>
       <div style={{ display: "flex", gap: 0, background: C.white, borderRadius: 12, border: `0.5px solid ${C.border}`, padding: 4, marginBottom: 16, overflowX: "auto" }}>
-        {[{ key: "recuperacions", label: "Recuperacions (" + pendR.length + ")" }, { key: "canvis", label: "Canvis (" + pendC.length + ")" }, { key: "historial", label: "Historial" }].map(t => (
+        {[{ key: "cancelacions", label: "Cancel.lacions" }, { key: "recuperacions", label: "Recuperacions (" + pendR.length + ")" }, { key: "canvis", label: "Canvis (" + pendC.length + ")" }, { key: "historial", label: "Historial" }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: "7px 10px", borderRadius: 9, fontSize: mobile ? 11 : 13, fontWeight: 500, cursor: "pointer", border: "none", fontFamily: "'DM Sans', sans-serif", background: tab === t.key ? C.oliveDark : "transparent", color: tab === t.key ? C.white : C.soft, whiteSpace: "nowrap", transition: "all .15s" }}>{t.label}</button>
         ))}
       </div>
+      {tab === "cancelacions" && (
+        <div style={card}>
+          {loadingCancel ? (
+            <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Carregant...</div>
+          ) : cancelacions.length === 0 ? (
+            <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>Encara no hi ha cap cancel.lacio registrada</div>
+          ) : cancelacions.map((a, i, arr) => {
+            const nomComplet = a.alumnes ? `${a.alumnes.nom} ${a.alumnes.cognom}` : "Alumna";
+            const esCancel = a.estat === "cancelada";
+            const servei = a.classes?.franges?.serveis?.nom || "";
+            const dataClasse = a.classes?.data ? formatDataCurta(new Date(a.classes.data + "T12:00:00")) : "";
+            const hora = a.classes?.franges?.hora_inici?.slice(0,5) || "";
+            const quan = a.data_cancelacio ? new Date(a.data_cancelacio).toLocaleString("ca-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : (a.created_at ? new Date(a.created_at).toLocaleString("ca-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+            return (
+              <div key={a.id} style={{ padding: mobile ? "12px 16px" : "14px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{nomComplet}</div>
+                  <span style={tag(esCancel ? "cancel" : "olive")}>{esCancel ? "Cancel.lada" : "Recuperacio"}</span>
+                </div>
+                <div style={{ fontSize: 14, color: C.soft }}>
+                  {esCancel
+                    ? <>Va cancel.lar {servei ? servei + " · " : ""}{dataClasse}{hora ? " a les " + hora : ""}{a.tipus_cancelacio === "menys_24h" ? " (menys de 24h, no recuperable)" : ""}</>
+                    : <>Es va apuntar a {servei ? servei + " · " : ""}{dataClasse}{hora ? " a les " + hora : ""}</>
+                  }
+                </div>
+                {a.motiu_cancelacio && <div style={{ fontSize: 13, color: C.mid, fontStyle: "italic", marginTop: 2 }}>"{a.motiu_cancelacio}"</div>}
+                {quan && <div style={{ fontSize: 12, color: C.soft, marginTop: 4 }}>{quan}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {tab === "recuperacions" && (
         <div style={card}>
           {pendR.length === 0 && recentsR.length === 0 && <div style={{ padding: "28px 16px", textAlign: "center", color: C.soft, fontSize: 15, fontStyle: "italic" }}>No hi ha recuperacions pendents</div>}
