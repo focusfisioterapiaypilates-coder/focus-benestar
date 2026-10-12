@@ -863,6 +863,7 @@ function Sidebar({ active, setActive, counts }) {
     { key: "calendari", label: "Calendari" },
     { key: "alumnes", label: "Alumnes", section: "Gestio" },
     { key: "franges", label: "Franges horaries" },
+    { key: "professores", label: "Professores" },
     { key: "espera", label: "Llista d'espera", count: counts.espera },
     { key: "recuperacions", label: "Recuperacions", count: counts.recuperacions },
     { key: "canvis", label: "Canvis d'horari", count: counts.canvis },
@@ -1836,6 +1837,105 @@ function VistaFranges({ mobile }) {
   );
 }
 
+function VistaProfessores({ mobile }) {
+  const [professores, setProfessores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showNova, setShowNova] = useState(false);
+  const [editant, setEditant] = useState(null); // professora object being edited, or null
+  const [form, setForm] = useState({ nom: "", telefon: "", pin: "" });
+
+  useEffect(() => { fetchDades(); }, []);
+
+  async function fetchDades() {
+    setLoading(true);
+    const { data } = await supabase.from("professores").select("*").eq("activa", true).order("nom");
+    setProfessores(data || []);
+    setLoading(false);
+  }
+
+  function obrirNova() {
+    setEditant(null);
+    setForm({ nom: "", telefon: "", pin: "" });
+    setShowNova(true);
+  }
+
+  function obrirEditar(p) {
+    setEditant(p);
+    setForm({ nom: p.nom || "", telefon: p.telefon || "", pin: p.pin || "" });
+    setShowNova(true);
+  }
+
+  function tancarModal() {
+    setShowNova(false);
+    setEditant(null);
+  }
+
+  async function guardar() {
+    if (!form.nom.trim()) return alert("Introdueix el nom");
+    if (!form.pin.trim()) return alert("Introdueix un PIN d'acces");
+    if (editant) {
+      const { error } = await supabase.from("professores")
+        .update({ nom: form.nom.trim(), telefon: form.telefon.trim() || null, pin: form.pin.trim() })
+        .eq("id", editant.id);
+      if (error) return alert("Error: " + error.message);
+    } else {
+      const { error } = await supabase.from("professores")
+        .insert([{ nom: form.nom.trim(), telefon: form.telefon.trim() || null, pin: form.pin.trim(), activa: true }]);
+      if (error) return alert("Error: " + error.message);
+    }
+    tancarModal();
+    fetchDades();
+  }
+
+  async function desactivar(p) {
+    if (!window.confirm(`Segur que vols desactivar a ${p.nom}? Ja no podra accedir al seu panel ni se li assignaran classes noves.`)) return;
+    const { error } = await supabase.from("professores").update({ activa: false }).eq("id", p.id);
+    if (error) return alert("Error: " + error.message);
+    fetchDades();
+  }
+
+  return (
+    <div style={{ padding: mobile ? "16px 16px 80px" : "28px 32px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: mobile ? 18 : 20, fontWeight: 700, color: C.oliveDark }}>Professores</div>
+        <button style={btn("primary")} onClick={obrirNova}>+ Nova professora</button>
+      </div>
+      <div style={{ fontSize: 14, color: C.soft, fontWeight: 300, marginBottom: 16 }}>Gestiona les professores del centre i el seu PIN d'acces</div>
+
+      {showNova && (
+        <Modal title={editant ? "Editar professora" : "Nova professora"} sub={editant ? "Actualitza les seves dades" : "Dona d'alta una nova professora"} onClose={tancarModal}>
+          <Field label="Nom" value={form.nom} onChange={v => setForm({ ...form, nom: v })} placeholder="Nom de la professora" />
+          <Field label="Telefon (opcional)" value={form.telefon} onChange={v => setForm({ ...form, telefon: v })} placeholder="600 000 000" />
+          <Field label="PIN d'acces" value={form.pin} onChange={v => setForm({ ...form, pin: v })} placeholder="Codi per entrar al seu panel" />
+          <div style={{ display: "flex", gap: 8, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
+            <button style={{ ...btn("secondary"), flex: 1 }} onClick={tancarModal}>Cancel.lar</button>
+            <button style={{ ...btn("primary"), flex: 1 }} onClick={guardar}>{editant ? "Guardar canvis" : "Crear professora"}</button>
+          </div>
+        </Modal>
+      )}
+
+      {loading ? (
+        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>Carregant...</div>
+      ) : professores.length === 0 ? (
+        <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic" }}>Encara no hi ha cap professora donada d'alta</div>
+      ) : (
+        <div style={card}>
+          {professores.map((p, i, arr) => (
+            <div key={p.id} style={{ padding: mobile ? "11px 16px" : "12px 20px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.dark }}>{p.nom}</div>
+                <div style={{ fontSize: 13, color: C.soft, marginTop: 1 }}>{p.telefon || "Sense telefon"} · PIN: {p.pin}</div>
+              </div>
+              <button onClick={() => obrirEditar(p)} style={{ ...btn("secondary"), fontSize: 13, padding: "5px 10px" }}>Editar</button>
+              <button onClick={() => desactivar(p)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.soft, padding: "0 4px", flexShrink: 0 }} title="Desactivar professora">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VistaRecuperacions({ recuperacions, canvis, onRefresh, mobile }) {
   const [tab, setTab] = useState("recuperacions");
   const [aprovats, setAprovats] = useState({}); // { id: { tipus: 'aprovada'|'rebutjada' } } - tracking local abans de refrescar
@@ -2083,6 +2183,7 @@ function PanelRosario() {
               {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile />}
               {active === "calendari" && <VistaCalendari mobile />}
               {active === "franges" && <VistaFranges mobile />}
+              {active === "professores" && <VistaProfessores mobile />}
               {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile />}
               {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile />}
             </>
@@ -2106,6 +2207,7 @@ function PanelRosario() {
                 {active === "alumnes" && <VistaAlumnesAdmin alumnes={alumnes} onRefresh={fetchAll} mobile={false} />}
                 {active === "calendari" && <VistaCalendari mobile={false} />}
                 {active === "franges" && <VistaFranges mobile={false} />}
+                {active === "professores" && <VistaProfessores mobile={false} />}
                 {active === "espera" && <VistaEspera espera={espera} onRefresh={fetchAll} mobile={false} />}
                 {(active === "recuperacions" || active === "canvis") && <VistaRecuperacions recuperacions={recuperacions} canvis={canvis} onRefresh={fetchAll} mobile={false} />}
               </>
