@@ -968,7 +968,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
   const [selectedFranja, setSelectedFranja] = useState("");
   const [filterServei, setFilterServei] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({ nom: alumna.nom, cognom: alumna.cognom, telefon: alumna.telefon, email: alumna.email || "", notes: alumna.notes || "" });
+  const [editForm, setEditForm] = useState({ nom: alumna.nom, cognom: alumna.cognom, telefon: alumna.telefon, email: alumna.email || "", notes: alumna.notes || "", horari_variable: alumna.horari_variable || false });
   const [saving, setSaving] = useState(false);
   const dies = ["", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"];
 
@@ -983,6 +983,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
       telefon: editForm.telefon.trim(),
       email: editForm.email.trim(),
       notes: editForm.notes.trim(),
+      horari_variable: editForm.horari_variable,
     }).eq("id", alumna.id);
     setSaving(false);
     if (error) return alert("Error: " + error.message);
@@ -1015,7 +1016,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
     if (fr) setFranges(fr);
   }
 
-  const [tipusHorari, setTipusHorari] = useState("fix");
+  const [tipusHorari, setTipusHorari] = useState(alumna.horari_variable ? "puntual" : "fix");
   const [dataPuntual, setDataPuntual] = useState("");
   const [dataInici, setDataInici] = useState("");
   const [showBaixa, setShowBaixa] = useState(false);
@@ -1105,6 +1106,17 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
           <Field label="Telefon WhatsApp *" value={editForm.telefon} onChange={v => setEditForm({...editForm, telefon: v})} placeholder="+376 600 111" />
           <Field label="Email" value={editForm.email} onChange={v => setEditForm({...editForm, email: v})} placeholder="anna@gmail.com" />
           <Field label="Notes internes" value={editForm.notes} onChange={v => setEditForm({...editForm, notes: v})} placeholder="Embaras, lesio..." />
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Modalitat d'horari</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setEditForm({...editForm, horari_variable: false})} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${!editForm.horari_variable ? C.olive : C.border}`, background: !editForm.horari_variable ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: !editForm.horari_variable ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Horari fix
+              </button>
+              <button onClick={() => setEditForm({...editForm, horari_variable: true})} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${editForm.horari_variable ? C.warn : C.border}`, background: editForm.horari_variable ? C.warnPale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: editForm.horari_variable ? C.warn : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Horari variable
+              </button>
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
             <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setEditMode(false)}>Cancel.lar</button>
             <button style={{ ...btn("primary"), flex: 1 }} onClick={handleSaveEdit} disabled={saving}>{saving ? "Guardant..." : "Guardar canvis"}</button>
@@ -1114,11 +1126,12 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
       <>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span style={tag(alumna.activa ? "ok" : "cancel")}>{alumna.activa ? "Activa" : "Baixa"}</span>
+        {alumna.horari_variable && <span style={tag("warn")}>Horari variable</span>}
         {alumna.notes && <span style={tag("olive")}>{alumna.notes}</span>}
         <button style={{ ...btn("secondary"), marginLeft: "auto", padding: "4px 10px", fontSize: 13 }} onClick={() => setEditMode(true)}>✏️ Editar dades</button>
       </div>
 
-      <div style={{ fontSize: 13, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>Horaris fixos ({horaris.length}/3)</div>
+      <div style={{ fontSize: 13, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 10 }}>{alumna.horari_variable ? "Horari assignat" : `Horaris fixos (${horaris.length}/3)`}</div>
 
       {loadingH ? (
         <div style={{ fontSize: 15, color: C.soft, fontStyle: "italic", marginBottom: 12 }}>Carregant...</div>
@@ -1156,8 +1169,8 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
         </div>
       )}
 
-      {horaris.length < 3 && !showAddHorari && (
-        <button style={{ ...btn("primary"), width: "100%", marginBottom: 16 }} onClick={() => { setEditingHorari(null); setSelectedFranja(""); setTipusHorari("fix"); setDataPuntual(""); setDataInici(""); setShowAddHorari(true); }}>+ Afegir horari fix</button>
+      {horaris.filter(h => h.tipus === "fix" || !h.tipus).length < 3 && !showAddHorari && (
+        <button style={{ ...btn("primary"), width: "100%", marginBottom: 16 }} onClick={() => { setEditingHorari(null); setSelectedFranja(""); setTipusHorari(alumna.horari_variable ? "puntual" : "fix"); setDataPuntual(""); setDataInici(""); setShowAddHorari(true); }}>{alumna.horari_variable ? "+ Assignar classe d'aquesta setmana" : "+ Afegir horari fix"}</button>
       )}
 
       {showAddHorari && (
@@ -1251,7 +1264,7 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
 function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
   const [showModal, setShowModal] = useState(false);
   const [fichaAlumna, setFichaAlumna] = useState(null);
-  const [form, setForm] = useState({ nom: "", cognom: "", telefon: "", email: "", notes: "" });
+  const [form, setForm] = useState({ nom: "", cognom: "", telefon: "", email: "", notes: "", horari_variable: false });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const filtered = alumnes.filter(a => `${a.nom} ${a.cognom} ${a.telefon}`.toLowerCase().includes(search.toLowerCase()));
@@ -1263,7 +1276,7 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
     setLoading(false);
     if (error) return alert("Error: " + error.message);
     setShowModal(false);
-    setForm({ nom: "", cognom: "", telefon: "", email: "", notes: "" });
+    setForm({ nom: "", cognom: "", telefon: "", email: "", notes: "", horari_variable: false });
     onRefresh();
   }
 
@@ -1292,7 +1305,10 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
               {a.notes && <div style={{ fontSize: 13, color: C.mid, fontStyle: "italic", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</div>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
-              <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
+              <div style={{ display: "flex", gap: 5 }}>
+                {a.horari_variable && <span style={tag("warn")}>Variable</span>}
+                <span style={tag(a.activa ? "ok" : "cancel")}>{a.activa ? "Activa" : "Baixa"}</span>
+              </div>
               <span style={{ fontSize: 13, color: C.soft }}>Veure →</span>
             </div>
           </div>
@@ -1309,6 +1325,18 @@ function VistaAlumnesAdmin({ alumnes, onRefresh, mobile }) {
           <Field label="Telefon WhatsApp *" value={form.telefon} onChange={v => setForm({ ...form, telefon: v })} placeholder="+376 600 111" />
           <Field label="Email (opcional)" value={form.email} onChange={v => setForm({ ...form, email: v })} placeholder="anna@gmail.com" />
           <Field label="Notes internes" value={form.notes} onChange={v => setForm({ ...form, notes: v })} placeholder="Embaras, lesio esquena..." />
+          <div style={{ marginBottom: 4 }}>
+            <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", color: C.soft, marginBottom: 5 }}>Modalitat d'horari</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setForm({ ...form, horari_variable: false })} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${!form.horari_variable ? C.olive : C.border}`, background: !form.horari_variable ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: !form.horari_variable ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Horari fix
+              </button>
+              <button onClick={() => setForm({ ...form, horari_variable: true })} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${form.horari_variable ? C.warn : C.border}`, background: form.horari_variable ? C.warnPale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: form.horari_variable ? C.warn : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                Horari variable
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: C.soft, marginTop: 4 }}>{form.horari_variable ? "Tria horari diferent cada setmana segons disponibilitat." : "Mateix horari cada setmana."}</div>
+          </div>
           <div style={{ display: "flex", gap: 8, marginTop: 20, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
             <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setShowModal(false)}>Cancel.lar</button>
             <button style={{ ...btn("primary"), flex: 1 }} onClick={handleCreate} disabled={loading}>{loading ? "Creant..." : "Crear alumna"}</button>
