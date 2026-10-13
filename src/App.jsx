@@ -299,6 +299,12 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     limit.setDate(avui.getDate() + 30);
     const limitStr = toLocalDateStr(limit);
     const avuiStr = toLocalDateStr(avui);
+    // Auto-desactivar classes puntuals passades (allibera el cupo de classes actives)
+    await supabase.from("horaris_alumnes")
+      .update({ actiu: false })
+      .eq("alumna_id", alumna.id)
+      .eq("tipus", "puntual")
+      .lt("data_classe", avuiStr);
     const [h, a, r, fr, totsHoraris, assistenciesClasses] = await Promise.all([
       // This alumna's horaris
       supabase.from("horaris_alumnes").select("*, franges(*, serveis(*), professores(nom, telefon))").eq("alumna_id", alumna.id).eq("actiu", true).order("tipus").order("data_classe").order("data_inici"),
@@ -350,8 +356,8 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
     const h = modalCancelar;
     const franja = h.franges;
     const horaInici = franja?.hora_inici || "00:00";
-    // Use specific date from 28-day list, or calculate next occurrence
-    const nextDateStr = h._dataEspecifica || toLocalDateStr(getNextDate(franja?.dia_setmana, franja?.hora_inici));
+    // Classes puntuals tenen una data fixa; les fixes usen la data concreta triada o la propera ocurrencia
+    const nextDateStr = h.tipus === "puntual" ? h.data_classe : (h._dataEspecifica || toLocalDateStr(getNextDate(franja?.dia_setmana, franja?.hora_inici)));
     const nextDate = new Date(nextDateStr + "T12:00:00");
     const classeDateTime = new Date(nextDateStr + "T" + horaInici);
     const horasDiff = (classeDateTime - new Date()) / (1000 * 60 * 60);
@@ -373,6 +379,10 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       } else {
         await supabase.from("assistencies").insert([{ classe_id: classeId, alumna_id: alumna.id, estat: "cancelada", tipus_cancelacio: tipusCancelacio, data_cancelacio: new Date().toISOString(), motiu_cancelacio: motiu }]);
       }
+    }
+    if (h.tipus === "puntual") {
+      // La classe puntual no es recurrent: cancel.lar-la allibera la plaça i el cupo de classes actives
+      await supabase.from("horaris_alumnes").update({ actiu: false }).eq("id", h.id);
     }
     if (tipusCancelacio === "mes_24h") {
       const caducitat = new Date();
@@ -455,6 +465,18 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       setModalSlot(null);
       fetchDades();
       alert("Recuperacio confirmada! Ens veiem el " + formatDataCurta(new Date(slot.data + "T12:00:00")) + " a les " + slot.hora);
+    } else if (slotAction === "nova") {
+      // Horari variable: reserva immediata, sense esperar aprovacio de Rosario. Maxim 2 classes actives alhora.
+      if (horaris.length >= 2) {
+        alert("Ja tens 2 classes actives. Cancel.la'n una abans de triar-ne una altra.");
+        setModalSlot(null);
+        return;
+      }
+      const { error: errNova } = await supabase.from("horaris_alumnes").insert([{ alumna_id: alumna.id, franja_id: slot.franja_id, tipus: "puntual", data_classe: slot.data, actiu: true }]);
+      if (errNova) { alert("Error: " + errNova.message); return; }
+      setModalSlot(null);
+      fetchDades();
+      alert("Classe reservada! Ens veiem el " + formatDataCurta(new Date(slot.data + "T12:00:00")) + " a les " + slot.hora);
     } else {
       await supabase.from("canvis_horari").insert([{ alumna_id: alumna.id, franja_sollicitada_id: slot.franja_id, estat: "pendent", nota_alumna: "Sol.licitud des del calendari per al " + slot.data }]);
       // Also update recuperacio with franja if pending
@@ -569,7 +591,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                         <div style={{ fontSize: 15, color: jaCancel·lada ? C.danger : "rgba(255,255,255,0.6)", fontWeight: 300, marginBottom: jaCancel·lada ? 0 : 16 }}>
                           {dataText} · {franja?.hora_inici?.slice(0,5) || ""} – {franja?.hora_fi?.slice(0,5) || ""}
                         </div>
-                        {!esPuntual && !jaCancel·lada && (
+                        {!jaCancel·lada && (
                           <button style={{ ...btn("terra"), fontSize: 14, padding: "8px 16px" }} onClick={() => setModalCancelar(h)}>
                             Cancel.lar aquesta classe
                           </button>
@@ -647,7 +669,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                               ? <span style={tag("cancel")}>Cancel.lada</span>
                               : esRecuperacio
                               ? <span style={tag("warn")}>Recuperació</span>
-                              : !puntual && <button style={{ ...btn("secondary"), fontSize: 12, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
+                              : <button style={{ ...btn("secondary"), fontSize: 12, padding: "4px 10px" }} onClick={() => setModalCancelar({ ...h, _dataEspecifica: dateStr })}>Cancel.lar</button>
                             }
                           </div>
                         );
@@ -684,7 +706,9 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     ? "Toca una hora per apuntar-te"
                     : pendentsRecup.length > 0
                       ? "Toca un dia per recuperar la teva classe."
-                      : "Toca un dia per sol.licitar un canvi d'horari a Rosario."}
+                      : alumna.horari_variable
+                        ? (horaris.length >= 2 ? "Ja tens 2 classes actives. Cancel.la'n una per triar-ne una altra." : "Toca un dia per triar la teva classe d'aquesta setmana.")
+                        : "Toca un dia per sol.licitar un canvi d'horari a Rosario."}
                 </div>
 
                 {calDiaSeleccionat ? (
@@ -698,7 +722,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                       <div style={card}>
                         {(slotsByDate[calDiaSeleccionat] || []).map((slot, i, arr) => (
                           <div key={`${slot.franja_id}-${slot.data}`}
-                            onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : "canvi"); setCalDiaSeleccionat(null); }}
+                            onClick={() => { setModalSlot(slot); setSlotAction(pendentsRecup.length > 0 ? "recuperacio" : (alumna.horari_variable ? "nova" : "canvi")); setCalDiaSeleccionat(null); }}
                             style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < arr.length - 1 ? `0.5px solid ${C.border}` : "none", cursor: "pointer" }}>
                             <div style={{ width: 44, height: 44, borderRadius: 10, background: C.oliveDark, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               <div style={{ fontSize: 17, fontWeight: 700, color: C.white, lineHeight: 1 }}>{slot.hora}</div>
@@ -797,7 +821,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
 
       {modalCancelar && (
         <Modal title="Cancel.lar classe" sub={(() => {
-          const dataStr = modalCancelar._dataEspecifica || (modalCancelar.franges ? toLocalDateStr(getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici)) : null);
+          const dataStr = modalCancelar.tipus === "puntual" ? modalCancelar.data_classe : (modalCancelar._dataEspecifica || (modalCancelar.franges ? toLocalDateStr(getNextDate(modalCancelar.franges.dia_setmana, modalCancelar.franges.hora_inici)) : null));
           return dataStr ? formatDataCurta(new Date(dataStr + "T12:00:00")) : "";
         })()} onClose={() => setModalCancelar(null)}>
           <div style={{ background: C.warnPale, border: `0.5px solid rgba(160,96,48,0.2)`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: C.warn, lineHeight: 1.6 }}>
@@ -828,26 +852,28 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       )}
 
       {modalSlot && (
-        <Modal title={slotAction === "recuperacio" ? "Apuntar-me a aquesta classe" : "Sol.licitar canvi d'horari"} sub={`${modalSlot.servei} · ${formatDataCurta(modalSlot.dataObj)} · ${modalSlot.hora}`} onClose={() => setModalSlot(null)}>
-          <div style={{ background: slotAction === "recuperacio" ? C.successPale : C.warnPale, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: slotAction === "recuperacio" ? C.success : C.warn, lineHeight: 1.6 }}>
+        <Modal title={slotAction === "canvi" ? "Sol.licitar canvi d'horari" : "Apuntar-me a aquesta classe"} sub={`${modalSlot.servei} · ${formatDataCurta(modalSlot.dataObj)} · ${modalSlot.hora}`} onClose={() => setModalSlot(null)}>
+          <div style={{ background: slotAction === "canvi" ? C.warnPale : C.successPale, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: slotAction === "canvi" ? C.warn : C.success, lineHeight: 1.6 }}>
             {slotAction === "recuperacio"
               ? "Aquesta accio confirmara la teva recuperacio directament. No cal esperar confirmacio de Rosario."
-              : "S'enviara una sol.licitud a Rosario per canviar el teu horari fix. Ella ho haura d'aprovar."}
+              : slotAction === "nova"
+                ? "Aquesta classe quedara reservada a l'instant. No cal esperar confirmacio de Rosario."
+                : "S'enviara una sol.licitud a Rosario per canviar el teu horari fix. Ella ho haura d'aprovar."}
           </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
               <button onClick={() => setSlotAction("recuperacio")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "recuperacio" ? C.olive : C.border}`, background: slotAction === "recuperacio" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: slotAction === "recuperacio" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
                 Recuperar classe{pendentsRecup.length > 0 ? ` (${pendentsRecup.length} pendent)` : ""}
               </button>
-              <button onClick={() => setSlotAction("canvi")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${slotAction === "canvi" ? C.olive : C.border}`, background: slotAction === "canvi" ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: slotAction === "canvi" ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
-                Canviar horari fix
+              <button onClick={() => setSlotAction(alumna.horari_variable ? "nova" : "canvi")} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${(slotAction === "canvi" || slotAction === "nova") ? C.olive : C.border}`, background: (slotAction === "canvi" || slotAction === "nova") ? C.olivePale : C.white, fontSize: 14, fontWeight: 500, cursor: "pointer", color: (slotAction === "canvi" || slotAction === "nova") ? C.oliveDark : C.soft, fontFamily: "'DM Sans', sans-serif" }}>
+                {alumna.horari_variable ? "Triar aquesta classe" : "Canviar horari fix"}
               </button>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8, paddingTop: 16, borderTop: `0.5px solid ${C.border}` }}>
             <button style={{ ...btn("secondary"), flex: 1 }} onClick={() => setModalSlot(null)}>Cancel.lar</button>
             <button style={{ ...btn("primary"), flex: 1 }} onClick={() => handleApuntarSlot(modalSlot)}>
-              {slotAction === "recuperacio" ? "Confirmar recuperacio" : "Enviar sol.licitud"}
+              {slotAction === "recuperacio" ? "Confirmar recuperacio" : slotAction === "nova" ? "Confirmar classe" : "Enviar sol.licitud"}
             </button>
           </div>
         </Modal>
