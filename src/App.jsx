@@ -1214,8 +1214,14 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
           {tipusHorari === "puntual" && (
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 12, letterSpacing: "1px", textTransform: "uppercase", color: C.soft, marginBottom: 4 }}>Data de la classe</div>
-              <input type="date" value={dataPuntual} onChange={e => setDataPuntual(e.target.value)}
+              <input type="date" value={dataPuntual} onChange={e => { setDataPuntual(e.target.value); setSelectedFranja(""); }}
                 style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: C.white, fontSize: 15, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none", boxSizing: "border-box" }} />
+              {dataPuntual
+                ? <div style={{ fontSize: 11, color: C.terra, marginTop: 3 }}>
+                    {["Diumenge","Dilluns","Dimarts","Dimecres","Dijous","Divendres","Dissabte"][new Date(dataPuntual + "T12:00:00").getDay()]} — nomes es mostren els horaris d'aquest dia
+                  </div>
+                : <div style={{ fontSize: 11, color: C.soft, marginTop: 3 }}>Tria la data per veure els horaris disponibles aquell dia</div>
+              }
             </div>
           )}
           {tipusHorari === "fix" && (
@@ -1233,13 +1239,14 @@ function FichaAlumna({ alumna, onClose, onRefresh }) {
           )}
           <div style={{ marginBottom: 8 }}>
             <select value={selectedFranja} onChange={e => setSelectedFranja(e.target.value)}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: tipusHorari === "fix" && !dataInici && !editingHorari ? C.oliveXpale : C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}
-              disabled={tipusHorari === "fix" && !dataInici && !editingHorari}>
-              <option value="">{tipusHorari === "fix" && !dataInici && !editingHorari ? "Primer tria la data d'inici..." : "Selecciona horari..."}</option>
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: (tipusHorari === "fix" && !dataInici && !editingHorari) || (tipusHorari === "puntual" && !dataPuntual) ? C.oliveXpale : C.white, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.dark, outline: "none" }}
+              disabled={(tipusHorari === "fix" && !dataInici && !editingHorari) || (tipusHorari === "puntual" && !dataPuntual)}>
+              <option value="">{(tipusHorari === "fix" && !dataInici && !editingHorari) || (tipusHorari === "puntual" && !dataPuntual) ? "Primer tria la data..." : "Selecciona horari..."}</option>
               {frangesFiltrades
                 .filter(f => {
-                  if (tipusHorari !== "fix" || !dataInici) return true;
-                  const dow = new Date(dataInici + "T12:00:00").getDay();
+                  const dataRef = tipusHorari === "fix" ? dataInici : (tipusHorari === "puntual" ? dataPuntual : null);
+                  if (!dataRef) return true;
+                  const dow = new Date(dataRef + "T12:00:00").getDay();
                   return f.dia_setmana === (dow === 0 ? 7 : dow);
                 })
                 .map(f => (
