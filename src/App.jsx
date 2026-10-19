@@ -466,12 +466,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
       fetchDades();
       alert("Recuperacio confirmada! Ens veiem el " + formatDataCurta(new Date(slot.data + "T12:00:00")) + " a les " + slot.hora);
     } else if (slotAction === "nova") {
-      // Horari variable: reserva immediata, sense esperar aprovacio de Rosario. Maxim 2 classes actives alhora.
-      if (horaris.length >= 2) {
-        alert("Ja tens 2 classes actives. Cancel.la'n una abans de triar-ne una altra.");
-        setModalSlot(null);
-        return;
-      }
+      // Horari variable: reserva immediata, sense esperar aprovacio de Rosario. Sense limit de classes actives.
       const { error: errNova } = await supabase.from("horaris_alumnes").insert([{ alumna_id: alumna.id, franja_id: slot.franja_id, tipus: "puntual", data_classe: slot.data, actiu: true }]);
       if (errNova) { alert("Error: " + errNova.message); return; }
       setModalSlot(null);
@@ -707,7 +702,7 @@ function VistaAlumnaPanel({ alumna, onLogout }) {
                     : pendentsRecup.length > 0
                       ? "Toca un dia per recuperar la teva classe."
                       : alumna.horari_variable
-                        ? (horaris.length >= 2 ? "Ja tens 2 classes actives. Cancel.la'n una per triar-ne una altra." : "Toca un dia per triar la teva classe d'aquesta setmana.")
+                        ? "Toca un dia per triar la teva classe d'aquesta setmana."
                         : "Toca un dia per sol.licitar un canvi d'horari a Rosario."}
                 </div>
 
